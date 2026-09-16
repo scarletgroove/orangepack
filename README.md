@@ -7,7 +7,21 @@ Internal web app for OrangePack staff. The first module issues **quotations (ใ
 - **Customers** — saved when a quotation is issued, reusable on the next one.
 - **Products & prices** — the full tier price table for all catalog items.
 
-Stack: Next.js 16 (App Router) · Drizzle ORM · Neon Postgres via the Vercel Marketplace · Zod · UI designed with the [Hallmark](https://github.com/nutlope/hallmark) skill.
+Stack: Next.js 16 (App Router) · Drizzle ORM · Neon Postgres and Clerk via the Vercel Marketplace · Zod · UI designed with the [Hallmark](https://github.com/nutlope/hallmark) skill.
+
+## Staff access
+
+Staff sign in at `/sign-in` with Clerk (email + password or Google). Only emails listed in the `ALLOWED_EMAILS` environment variable can use the app; anyone else who signs in sees a "no access" page and no data. The check runs on every data read and every server action (`src/lib/auth.ts`), not only in the page redirect.
+
+To add or remove a staff member, replace the list (comma-separated) and redeploy:
+
+```bash
+npx vercel env rm ALLOWED_EMAILS production --yes
+printf 'owner@example.com,staff@example.com' | npx vercel env add ALLOWED_EMAILS production
+npx vercel deploy --prod
+```
+
+If `ALLOWED_EMAILS` is empty, nobody can get in.
 
 ## Prerequisites
 
@@ -78,17 +92,20 @@ Issued quotations keep their own copy of product names and prices, so re-seeding
 ## Project layout
 
 ```
-src/app/quotations/   list, new, [id] (document), [id]/edit, server actions
-src/app/customers/    customer list
-src/app/products/     catalog and tier price tables
-src/components/       quotation editor, printable document, menu
-src/db/               Drizzle schema and client
-src/lib/              pricing tiers, money/VAT math, Thai baht text, dates, company details
+src/app/(app)/quotations/   list, new, [id] (document), [id]/edit, server actions
+src/app/(app)/customers/    customer list
+src/app/(app)/products/     catalog and tier price tables
+src/app/sign-in/            Clerk sign-in page
+src/app/no-access/          shown to signed-in users who are not on the allowlist
+src/proxy.ts                redirects signed-out visitors to /sign-in
+src/components/             quotation editor, printable document, menu
+src/db/                     Drizzle schema and client
+src/lib/                    staff access check, pricing tiers, money/VAT math, Thai baht text, dates
 scripts/seed.ts       catalog import
 tokens.css            design tokens (brand colours, type, spacing)
 ```
 
 ## Before going live
 
-- **No login yet.** Anyone who can reach the URL can create and edit quotations. Add authentication, or at least enable Vercel Deployment Protection, before deploying.
+- **Clerk development instance.** The app currently uses Clerk development keys, which show a "Development mode" badge and have a user cap. Moving to a Clerk production instance requires a custom domain.
 - **Company details** — the business is not registered yet, so quotations show only the OrangePack logo (no address, contact details or tax ID) and are meant as preliminary quotes. After registering, add the legal name, address and tax ID back to the header in `src/components/quotation-document.tsx`.

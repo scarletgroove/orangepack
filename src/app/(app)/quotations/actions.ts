@@ -13,14 +13,13 @@ import {
   quotations,
   quotationStatus,
 } from "@/db/schema";
+import { requireStaff } from "@/lib/auth";
 import { getQuotation } from "@/lib/data";
 import { addDays, daysBetween, todayInBangkok } from "@/lib/dates";
 import { computeTotals, VAT_BPS } from "@/lib/money";
 import { quotationInput, type QuotationInput, type SaveState } from "@/lib/quotation-input";
 
 type Db = ReturnType<typeof getDb>;
-
-// TODO(auth): these actions are public endpoints until authentication is added.
 
 function isUniqueViolation(err: unknown): boolean {
   for (let e = err; e && typeof e === "object"; e = (e as { cause?: unknown }).cause) {
@@ -97,6 +96,7 @@ async function buildItems(db: Db, input: QuotationInput) {
 class InputError extends Error {}
 
 export async function saveQuotation(_prev: SaveState, formData: FormData): Promise<SaveState> {
+  await requireStaff();
   let parsed: QuotationInput;
   try {
     const result = quotationInput.safeParse(JSON.parse(String(formData.get("payload"))));
@@ -197,6 +197,7 @@ const statusInput = z.object({
 });
 
 export async function setQuotationStatus(id: string, status: string) {
+  await requireStaff();
   const parsed = statusInput.parse({ id, status });
   await getDb()
     .update(quotations)
@@ -206,6 +207,7 @@ export async function setQuotationStatus(id: string, status: string) {
 }
 
 export async function duplicateQuotation(sourceId: string) {
+  await requireStaff();
   const found = await getQuotation(z.uuid().parse(sourceId));
   if (!found) throw new Error("Quotation not found");
   const { items: sourceItems, ...source } = found;

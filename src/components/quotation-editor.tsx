@@ -4,7 +4,7 @@ import { AlertCircle, PackagePlus, PenLine, Plus, Trash2, Undo2 } from "lucide-r
 import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useId, useMemo, useRef, useState, type FormEvent } from "react";
-import { saveQuotation } from "@/app/quotations/actions";
+import { saveQuotation } from "@/app/(app)/quotations/actions";
 import type { VatMode } from "@/db/schema";
 import type { CatalogProduct, CatalogVariant, CustomerRecord } from "@/lib/data";
 import {

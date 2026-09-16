@@ -3,7 +3,7 @@
 import { Check, Copy, Pencil, Printer, RotateCcw, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useTransition } from "react";
-import { duplicateQuotation, setQuotationStatus } from "@/app/quotations/actions";
+import { duplicateQuotation, setQuotationStatus } from "@/app/(app)/quotations/actions";
 import type { QuotationStatus } from "@/db/schema";
 
 const transitions: Record<QuotationStatus, { to: QuotationStatus; label: string; icon: typeof Send; primary?: boolean }[]> = {

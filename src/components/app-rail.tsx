@@ -1,5 +1,6 @@
 "use client";
 
+import { UserButton } from "@clerk/nextjs";
 import { FileText, Package, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -39,6 +40,9 @@ export function AppRail() {
           );
         })}
       </nav>
+      <div className="rail__user">
+        <UserButton showName />
+      </div>
       <p className="rail__foot">ราคาสินค้านำเข้าจาก theorangepack.com</p>
     </header>
   );

@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/db";
+import { requireStaff } from "@/lib/auth";
 import {
   customers,
   priceTiers,
@@ -32,6 +33,7 @@ export type CatalogProduct = {
 };
 
 export async function getCatalog(): Promise<CatalogProduct[]> {
+  await requireStaff();
   const db = getDb();
   const [productRows, variantRows, tierRows] = await Promise.all([
     db.select().from(products).orderBy(asc(products.sortOrder)),
@@ -68,10 +70,12 @@ export async function getCatalog(): Promise<CatalogProduct[]> {
 export type CustomerRecord = typeof customers.$inferSelect;
 
 export async function getCustomers() {
+  await requireStaff();
   return getDb().select().from(customers).orderBy(asc(customers.name));
 }
 
 export async function getCustomersWithActivity() {
+  await requireStaff();
   const db = getDb();
   return db
     .select({
@@ -92,6 +96,7 @@ export async function getCustomersWithActivity() {
 export const STATUS_FILTERS = ["draft", "sent", "accepted", "rejected"] as const;
 
 export async function listQuotations(filter: { status?: QuotationStatus; q?: string }) {
+  await requireStaff();
   const db = getDb();
   const conditions: SQL[] = [];
   if (filter.status) conditions.push(eq(quotations.status, filter.status));
@@ -123,6 +128,7 @@ export async function listQuotations(filter: { status?: QuotationStatus; q?: str
 }
 
 export async function getQuotationStats() {
+  await requireStaff();
   return getDb()
     .select({
       status: quotations.status,
@@ -134,6 +140,7 @@ export async function getQuotationStats() {
 }
 
 export async function getQuotation(id: string) {
+  await requireStaff();
   const db = getDb();
   const [quotation] = await db.select().from(quotations).where(eq(quotations.id, id));
   if (!quotation) return null;
