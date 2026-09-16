@@ -1,0 +1,9 @@
+{
+  "date": "2026-09-16",
+  "framework": "Next.js 16.3.5 (App Router, Turbopack)",
+  "fonts": "create-next-app Geist defaults replaced: Geist has no Thai glyphs. Now Prompt (brand face from theorangepack.com) + IBM Plex Sans Thai + IBM Plex Mono via next/font",
+  "palette": "Brand tokens from theorangepack.com/assets/site.css (#F39200 orange, #82BC00 green, #FBF7F0 cream, #2A2521 ink) converted to OKLCH in /tokens.css",
+  "motion": "none installed — motion-cut",
+  "spacing": "4pt scale tokens in /tokens.css",
+  "styles": "Tailwind v4 entry (@import \"tailwindcss\") preserved in src/app/globals.css"
+}
