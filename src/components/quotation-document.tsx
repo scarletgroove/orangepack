@@ -131,13 +131,7 @@ export function QuotationDocument({ q }: { q: QuotationWithItems }) {
               </div>
             </>
           )}
-          {q.vatMode === "inclusive" && (
-            <div>
-              <dt>มูลค่าก่อนภาษี</dt>
-              <dd className="num">{formatBaht(afterDiscount - q.vatSatang)}</dd>
-            </div>
-          )}
-          {q.vatMode !== "none" && (
+          {q.vatMode === "exclusive" && (
             <div>
               <dt>ภาษีมูลค่าเพิ่ม {q.vatBps / 100}%</dt>
               <dd className="num">{formatBaht(q.vatSatang)}</dd>

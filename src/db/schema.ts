@@ -19,7 +19,7 @@ export const quotationStatus = pgEnum("quotation_status", [
   "rejected",
 ]);
 
-export const vatMode = pgEnum("vat_mode", ["inclusive", "exclusive", "none"]);
+export const vatMode = pgEnum("vat_mode", ["exclusive", "none"]);
 
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
@@ -93,7 +93,7 @@ export const quotations = pgTable(
     issueDate: date("issue_date").notNull(),
     validUntil: date("valid_until").notNull(),
     discountBps: integer("discount_bps").notNull().default(0),
-    vatMode: vatMode("vat_mode").notNull().default("inclusive"),
+    vatMode: vatMode("vat_mode").notNull().default("exclusive"),
     vatBps: integer("vat_bps").notNull().default(700),
     notes: text("notes"),
     subtotalSatang: bigint("subtotal_satang", { mode: "number" }).notNull(),

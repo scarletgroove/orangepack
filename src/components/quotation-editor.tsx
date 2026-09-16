@@ -732,7 +732,6 @@ export function QuotationEditor({
             <div className="segmented">
               {(
                 [
-                  ["inclusive", "รวม VAT แล้ว"],
                   ["exclusive", "บวก VAT 7%"],
                   ["none", "ไม่คิด VAT"],
                 ] as const
@@ -762,15 +761,9 @@ export function QuotationEditor({
                 <dd className="num">−฿{formatBaht(totals.discount)}</dd>
               </div>
             )}
-            {vatMode === "inclusive" && (
+            {vatMode === "exclusive" && (
               <div className="summary__row">
-                <dt>มูลค่าก่อนภาษี</dt>
-                <dd className="num">฿{formatBaht(totals.beforeVat)}</dd>
-              </div>
-            )}
-            {vatMode !== "none" && (
-              <div className="summary__row">
-                <dt>VAT 7%{vatMode === "inclusive" ? " (รวมในราคา)" : ""}</dt>
+                <dt>VAT 7%</dt>
                 <dd className="num">฿{formatBaht(totals.vat)}</dd>
               </div>
             )}

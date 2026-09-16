@@ -37,7 +37,7 @@ export default async function NewQuotationPage() {
           issueDate: today,
           validUntil: addDays(today, DEFAULT_VALIDITY_DAYS),
           discountBps: 0,
-          vatMode: "inclusive",
+          vatMode: "exclusive",
           notes: defaultQuotationNotes,
           items: [],
         }}

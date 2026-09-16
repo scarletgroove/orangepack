@@ -27,7 +27,7 @@ export const quotationInput = z
     issueDate: z.iso.date(),
     validUntil: z.iso.date(),
     discountBps: z.number().int().min(0).max(10_000),
-    vatMode: z.enum(["inclusive", "exclusive", "none"]),
+    vatMode: z.enum(["exclusive", "none"]),
     notes: optionalText(2000),
     items: z.array(quotationItemInput).min(1, "เพิ่มอย่างน้อย 1 รายการ").max(100),
   })

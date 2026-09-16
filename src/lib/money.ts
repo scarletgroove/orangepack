@@ -37,11 +37,11 @@ export type Totals = {
   subtotal: number;
   discount: number;
   afterDiscount: number;
-  beforeVat: number;
   vat: number;
   total: number;
 };
 
+// Catalog prices exclude VAT (theorangepack.com catalog.js: "All prices excl. VAT 7%"), so VAT is only ever added on top.
 export function computeTotals(
   lines: { quantity: number; unitPriceSatang: number }[],
   discountBps: number,
@@ -51,17 +51,8 @@ export function computeTotals(
   const subtotal = lines.reduce((sum, l) => sum + l.quantity * l.unitPriceSatang, 0);
   const discount = Math.round((subtotal * discountBps) / 10_000);
   const afterDiscount = subtotal - discount;
-  let vat = 0;
-  let beforeVat = afterDiscount;
-  let total = afterDiscount;
-  if (vatMode === "exclusive") {
-    vat = Math.round((afterDiscount * vatBps) / 10_000);
-    total = afterDiscount + vat;
-  } else if (vatMode === "inclusive") {
-    vat = Math.round((afterDiscount * vatBps) / (10_000 + vatBps));
-    beforeVat = afterDiscount - vat;
-  }
-  return { subtotal, discount, afterDiscount, beforeVat, vat, total };
+  const vat = vatMode === "exclusive" ? Math.round((afterDiscount * vatBps) / 10_000) : 0;
+  return { subtotal, discount, afterDiscount, vat, total: afterDiscount + vat };
 }
 
 const DIGITS = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];

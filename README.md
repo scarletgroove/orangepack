@@ -2,7 +2,7 @@
 
 Internal web app for OrangePack staff. The first module issues **quotations (ใบเสนอราคา)** priced from the tiered catalog on [theorangepack.com](https://www.theorangepack.com), tracks their status, and prints them as A4 documents.
 
-- **Quotations** — pick products, size and print method; unit prices fill in from the quantity tier, with below-minimum warnings, manual price overrides, discounts, and VAT (included / added / none). Totals are printed with the Thai amount in words.
+- **Quotations** — pick products, size and print method; unit prices fill in from the quantity tier, with below-minimum warnings, manual price overrides, discounts, and VAT 7% added on top (catalog prices exclude VAT) or no VAT. Totals are printed with the Thai amount in words.
 - **Status tracking** — draft → sent → accepted / rejected, search, duplicate a quotation.
 - **Customers** — saved when a quotation is issued, reusable on the next one.
 - **Products & prices** — the full tier price table for all catalog items.
@@ -93,4 +93,3 @@ tokens.css            design tokens (brand colours, type, spacing)
 - **No login yet.** Anyone who can reach the URL can create and edit quotations. Add authentication, or at least enable Vercel Deployment Protection, before deploying.
 - **Company tax ID** is not published on the website. Set `taxId` in `src/lib/company.ts`; the document shows "รอระบุ" until then.
 - **Contact details** in `src/lib/company.ts` are copied from the website; confirm the phone numbers are real.
-- **VAT default** for new quotations is "price includes VAT", based on the website's price estimate. Change it in `src/app/quotations/new/page.tsx` if catalog prices exclude VAT.
