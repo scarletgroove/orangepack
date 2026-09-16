@@ -11,20 +11,7 @@ export function QuotationDocument({ q }: { q: QuotationWithItems }) {
   return (
     <article className="sheet" aria-label={`ใบเสนอราคา ${q.number}`}>
       <header className="sheet__head">
-        <div className="sheet__company">
-          <Image src="/brand/logo.png" alt="OrangePack" width={56} height={56} />
-          <div>
-            <p className="sheet__company-name">{company.name}</p>
-            <p>{company.address}</p>
-            <p>
-              โทร {company.phones.join(", ")} · {company.email}
-            </p>
-            <p>
-              เลขประจำตัวผู้เสียภาษี{" "}
-              {company.taxId ?? <span className="sheet__pending">— รอระบุ</span>}
-            </p>
-          </div>
-        </div>
+        <Image className="sheet__logo" src="/brand/logo.png" alt={company.name} width={112} height={112} priority />
         <div className="sheet__doc">
           <h1 className="sheet__doc-title">
             ใบเสนอราคา

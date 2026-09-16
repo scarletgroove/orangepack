@@ -933,22 +933,10 @@ h3 {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
-.sheet__company {
-  display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-  gap: var(--space-sm);
-  align-items: start;
-}
-.sheet__company-name {
-  font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 700;
-  line-height: 1.2;
-}
-.sheet__company p {
-  color: var(--color-ink-2);
-  font-size: var(--text-xs);
-  line-height: 1.55;
+.sheet__logo {
+  width: 7rem;
+  height: auto;
+  mix-blend-mode: multiply;
 }
 .sheet__doc {
   display: grid;
@@ -1108,9 +1096,6 @@ h3 {
   height: var(--space-2xl);
   border-bottom: 1px dotted var(--color-rule-2);
   margin-bottom: var(--space-xs);
-}
-.sheet__pending {
-  color: var(--color-accent-text);
 }
 
 /* ---------- catalogue ---------- */

@@ -91,5 +91,4 @@ tokens.css            design tokens (brand colours, type, spacing)
 ## Before going live
 
 - **No login yet.** Anyone who can reach the URL can create and edit quotations. Add authentication, or at least enable Vercel Deployment Protection, before deploying.
-- **Company tax ID** is not published on the website. Set `taxId` in `src/lib/company.ts`; the document shows "รอระบุ" until then.
-- **Contact details** in `src/lib/company.ts` are copied from the website; confirm the phone numbers are real.
+- **Company details** — the business is not registered yet, so quotations show only the OrangePack logo (no address, contact details or tax ID) and are meant as preliminary quotes. After registering, add the legal name, address and tax ID back to the header in `src/components/quotation-document.tsx`.
