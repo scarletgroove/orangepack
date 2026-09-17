@@ -100,6 +100,11 @@ export const quotations = pgTable(
     discountSatang: bigint("discount_satang", { mode: "number" }).notNull(),
     vatSatang: bigint("vat_satang", { mode: "number" }).notNull(),
     totalSatang: bigint("total_satang", { mode: "number" }).notNull(),
+    // Staff email + display name at the time of the change. Null on quotations made before tracking existed.
+    createdByEmail: text("created_by_email"),
+    createdByName: text("created_by_name"),
+    updatedByEmail: text("updated_by_email"),
+    updatedByName: text("updated_by_name"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

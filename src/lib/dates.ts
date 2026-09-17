@@ -23,3 +23,13 @@ export function formatThaiDate(isoDate: string) {
 export function formatThaiDateShort(isoDate: string) {
   return shortThai.format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+const thaiDateTime = new Intl.DateTimeFormat("th-TH", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Bangkok",
+});
+
+export function formatThaiDateTime(instant: Date) {
+  return thaiDateTime.format(instant);
+}

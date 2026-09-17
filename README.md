@@ -43,7 +43,7 @@ npx vercel link --yes --project orangepack-erp
 npx vercel env pull .env.local --yes
 
 # Create the tables and load the product catalog
-npm run db:push
+npm run db:migrate
 npm run db:seed
 
 npm run dev
@@ -59,7 +59,7 @@ To start with an empty database of your own, link to your own Vercel project and
 npx vercel link --yes
 npx vercel integration add neon --metadata region=sin1
 npx vercel env pull .env.local --yes
-npm run db:push
+npm run db:migrate
 npm run db:seed
 ```
 
@@ -72,8 +72,22 @@ The first `integration add` asks you to accept Neon's terms in the browser; run 
 | `npm run dev` | Start the dev server |
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
-| `npm run db:push` | Apply `src/db/schema.ts` to the database |
+| `npm run db:generate` | Write a new SQL migration in `drizzle/` from changes to `src/db/schema.ts` |
+| `npm run db:migrate` | Apply pending migrations in `drizzle/` to the database in `.env.local` |
 | `npm run db:seed` | Load `data/theorangepack-catalog.json` into products, variants and price tiers. Safe to re-run: it updates existing rows instead of duplicating them |
+
+## Changing the database schema
+
+The database is changed only through migration files in `drizzle/`, which are committed with the code. Don't use `drizzle-kit push`: it changes the database without leaving a record.
+
+1. Edit `src/db/schema.ts`.
+2. `npm run db:generate -- --name short_description` and read the generated SQL in `drizzle/`.
+3. `npm run db:migrate` to apply it. The local `.env.local` points at the same database the live app uses, so this changes production.
+4. Commit the schema change and the migration together, then deploy.
+
+Run the migration **before** deploying code that reads new columns. Prefer changes that old code tolerates (new nullable columns, new tables); for renames or drops, ship in two steps.
+
+`drizzle/0000_baseline.sql` is the schema as it existed when migrations were introduced. The existing database already has it marked as applied; a fresh database runs it like any other migration.
 
 ## Updating catalog prices
 

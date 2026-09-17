@@ -96,7 +96,7 @@ async function buildItems(db: Db, input: QuotationInput) {
 class InputError extends Error {}
 
 export async function saveQuotation(_prev: SaveState, formData: FormData): Promise<SaveState> {
-  await requireStaff();
+  const by = await requireStaff();
   let parsed: QuotationInput;
   try {
     const result = quotationInput.safeParse(JSON.parse(String(formData.get("payload"))));
@@ -149,6 +149,8 @@ export async function saveQuotation(_prev: SaveState, formData: FormData): Promi
       discountSatang: totals.discount,
       vatSatang: totals.vat,
       totalSatang: totals.total,
+      updatedByEmail: by.email,
+      updatedByName: by.name,
     };
 
     if (parsed.id) {
@@ -172,7 +174,9 @@ export async function saveQuotation(_prev: SaveState, formData: FormData): Promi
         const number = await nextQuotationNumber(db);
         try {
           await db.batch([
-            db.insert(quotations).values({ id, number, ...fields }),
+            db
+              .insert(quotations)
+              .values({ id, number, ...fields, createdByEmail: by.email, createdByName: by.name }),
             db.insert(quotationItems).values(items.map((i) => ({ ...i, quotationId: id }))),
           ]);
           break;
@@ -197,17 +201,22 @@ const statusInput = z.object({
 });
 
 export async function setQuotationStatus(id: string, status: string) {
-  await requireStaff();
+  const by = await requireStaff();
   const parsed = statusInput.parse({ id, status });
   await getDb()
     .update(quotations)
-    .set({ status: parsed.status, updatedAt: new Date() })
+    .set({
+      status: parsed.status,
+      updatedAt: new Date(),
+      updatedByEmail: by.email,
+      updatedByName: by.name,
+    })
     .where(eq(quotations.id, parsed.id));
   refresh();
 }
 
 export async function duplicateQuotation(sourceId: string) {
-  await requireStaff();
+  const by = await requireStaff();
   const found = await getQuotation(z.uuid().parse(sourceId));
   if (!found) throw new Error("Quotation not found");
   const { items: sourceItems, ...source } = found;
@@ -228,6 +237,10 @@ export async function duplicateQuotation(sourceId: string) {
           status: "draft",
           issueDate,
           validUntil,
+          createdByEmail: by.email,
+          createdByName: by.name,
+          updatedByEmail: by.email,
+          updatedByName: by.name,
           createdAt: new Date(),
           updatedAt: new Date(),
         }),
