@@ -52,6 +52,21 @@ npx neon@latest branches create --project-id small-voice-34844459 --name dev --p
 
 Neon commands need a signed-in CLI (`npx neon@latest auth`, once per machine).
 
+## Backups and CI
+
+`.github/workflows/ci.yml` runs lint, type-check, `npm test` and the production build on every push and pull request. Pushing to `main` deploys to production, so check that it is green.
+
+`.github/workflows/backup.yml` snapshots the production branch daily at 03:00 Bangkok and keeps each snapshot 30 days. This exists because the project's Neon plan caps point-in-time restore at **6 hours** (`history_retention_seconds: 21600`, and the API refuses a higher value), which is not long enough to notice a mistake made yesterday.
+
+It needs a `NEON_API_KEY` secret in GitHub (Settings → Secrets and variables → Actions), created in the Neon console under Account settings → API keys.
+
+Restore a snapshot into a new branch, look at it, and only then decide what to copy back:
+
+```bash
+npx neon@latest snapshots list --project-id small-voice-34844459
+npx neon@latest snapshots restore <snapshot-id> --project-id small-voice-34844459
+```
+
 ## Prerequisites
 
 - Node.js 20.9 or newer

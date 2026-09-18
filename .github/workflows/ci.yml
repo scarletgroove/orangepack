@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Pushing to main deploys to production, so this has to pass on the same commit Vercel builds.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Placeholders only. Nothing here connects anywhere: the tests are pure functions and every page
+      # is rendered on demand, so the build never reads the database.
+      DATABASE_URL: postgresql://ci:ci@localhost/ci?sslmode=require
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+      CLERK_SECRET_KEY: sk_test_ci
+      ALLOWED_EMAILS: ""
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # PageProps types for each route are generated, not checked in.
+      - run: npx next typegen
+
+      - run: npm run lint
+
+      - run: npx tsc --noEmit
+
+      - run: npm test
+
+      - run: npm run build

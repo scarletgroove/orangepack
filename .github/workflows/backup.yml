@@ -1,0 +1,32 @@
+name: Daily database snapshot
+
+# The Neon plan for this project caps point-in-time restore at 6 hours, so a mistake noticed the next
+# morning is already past the window. A daily snapshot of production extends that to 30 days.
+on:
+  schedule:
+    # 20:00 UTC = 03:00 in Bangkok, after the working day.
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Snapshot the production branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          if [ -z "$NEON_API_KEY" ]; then
+            echo "NEON_API_KEY is not set — add it under Settings → Secrets and variables → Actions." >&2
+            exit 1
+          fi
+          npx -y neon@latest snapshots create \
+            --project-id small-voice-34844459 \
+            --branch main \
+            --name "auto-$(date -u +%Y-%m-%d)" \
+            --expires-at "$(date -u -d '+30 days' +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: List snapshots
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: npx -y neon@latest snapshots list --project-id small-voice-34844459
