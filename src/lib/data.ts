@@ -1,6 +1,7 @@
-import { and, asc, count, desc, eq, ilike, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/db";
 import { requireStaff } from "@/lib/auth";
+import { OPEN_JOB_STATUSES } from "@/lib/jobs";
 import {
   customers,
   priceTiers,
@@ -246,4 +247,43 @@ export async function countConvertibleQuotations() {
     .leftJoin(salesOrders, eq(salesOrders.quotationId, quotations.id))
     .where(and(eq(quotations.status, "accepted"), isNull(salesOrders.id)));
   return row?.n ?? 0;
+}
+
+/** Open jobs for the dashboard, soonest promised date first, with undated ones last. */
+export async function listOpenJobs() {
+  await requireStaff();
+  return getDb()
+    .select({
+      id: salesOrders.id,
+      number: salesOrders.number,
+      status: salesOrders.status,
+      customerName: salesOrders.customerName,
+      customerCompany: salesOrders.customerCompany,
+      dueDate: salesOrders.dueDate,
+      totalSatang: salesOrders.totalSatang,
+      paidSatang: salesOrders.paidSatang,
+    })
+    .from(salesOrders)
+    .where(inArray(salesOrders.status, [...OPEN_JOB_STATUSES]))
+    .orderBy(sql`${salesOrders.dueDate} asc nulls last`, asc(salesOrders.number))
+    .limit(100);
+}
+
+/** Quotations still waiting on the customer, oldest first — the follow-up list. */
+export async function listPendingQuotations() {
+  await requireStaff();
+  return getDb()
+    .select({
+      id: quotations.id,
+      number: quotations.number,
+      customerName: quotations.customerName,
+      customerCompany: quotations.customerCompany,
+      issueDate: quotations.issueDate,
+      validUntil: quotations.validUntil,
+      totalSatang: quotations.totalSatang,
+    })
+    .from(quotations)
+    .where(eq(quotations.status, "sent"))
+    .orderBy(asc(quotations.validUntil))
+    .limit(20);
 }

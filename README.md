@@ -2,6 +2,7 @@
 
 Internal web app for OrangePack staff. The first module issues **quotations (ใบเสนอราคา)** priced from the tiered catalog on [theorangepack.com](https://www.theorangepack.com), tracks their status, and prints them as A4 documents.
 
+- **Dashboard (ภาพรวมงาน)** — the home page: jobs that are overdue or due within 7 days, what is still owed on open jobs, accepted quotations waiting to be opened as orders, and quotations still waiting on a customer reply.
 - **Quotations** — pick products, size and print method; unit prices fill in from the quantity tier, with below-minimum warnings, manual price overrides, discounts, and VAT 7% added on top (catalog prices exclude VAT) or no VAT. Totals are printed with the Thai amount in words.
 - **Status tracking** — draft → sent → accepted / rejected, search, duplicate a quotation.
 - **Sales orders (ใบสั่งขาย)** — an accepted quotation opens a production job: รอผลิต → กำลังผลิต → ผลิตเสร็จ → ส่งแล้ว (or ยกเลิก), with a delivery date, deposit percentage and payments received so each order shows what is still owed. Quantities and prices can be corrected only while the order is still รอผลิต.
@@ -155,6 +156,7 @@ One sales order per quotation, enforced by a unique index. The order snapshots t
 
 ```
 src/app/(app)/quotations/   list, new, [id] (document), [id]/edit, server actions
+src/app/(app)/page.tsx       dashboard of due and overdue jobs
 src/app/(app)/orders/        sales order list, [id] (document + production/payment forms), server actions
 src/app/(app)/customers/    customer list
 src/app/(app)/products/     catalog and tier price tables
@@ -163,7 +165,7 @@ src/app/no-access/          shown to signed-in users who are not on the allowlis
 src/proxy.ts                redirects signed-out visitors to /sign-in
 src/components/             quotation editor, printable document, menu
 src/db/                     Drizzle schema and client
-src/lib/                    staff access check, pricing tiers, money/VAT math, Thai baht text, dates, order input rules
+src/lib/                    staff access check, pricing tiers, money/VAT math, Thai baht text, dates, order input rules, job urgency
 drizzle/                    SQL migrations, applied with npm run db:migrate
 scripts/seed.ts       catalog import
 tokens.css            design tokens (brand colours, type, spacing)

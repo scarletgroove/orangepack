@@ -1,12 +1,13 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { ClipboardList, FileText, Package, Users } from "lucide-react";
+import { ClipboardList, FileText, LayoutDashboard, Package, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
+  { href: "/", label: "ภาพรวม", icon: LayoutDashboard },
   { href: "/quotations", label: "ใบเสนอราคา", icon: FileText },
   { href: "/orders", label: "ใบสั่งขาย", icon: ClipboardList },
   { href: "/customers", label: "ลูกค้า", icon: Users },
@@ -18,7 +19,7 @@ export function AppRail() {
 
   return (
     <header className="rail">
-      <Link href="/quotations" className="rail__brand">
+      <Link href="/" className="rail__brand">
         <Image src="/brand/logo.png" alt="" width={32} height={32} priority />
         <span className="rail__wordmark">
           OrangePack <span>ERP</span>
@@ -26,7 +27,7 @@ export function AppRail() {
       </Link>
       <nav className="rail__nav" aria-label="เมนูหลัก">
         {links.map(({ href, label, longLabel, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+          const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}
