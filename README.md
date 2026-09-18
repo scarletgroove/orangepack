@@ -24,6 +24,33 @@ npx vercel deploy --prod
 
 If `ALLOWED_EMAILS` is empty, nobody can get in.
 
+## Databases
+
+| Branch | Endpoint | Used by |
+| --- | --- | --- |
+| `main` | `ep-silent-pond-b3qphny9` | the deployed app (env vars live in Vercel) |
+| `dev` | `ep-withered-breeze-b3biyago` | local development (`.env.local`) |
+
+Both are branches of the Neon project `orangepack-erp-db` (`small-voice-34844459`) in the Vercel-owned org `org-jolly-queen-65685148`. `dev` is a copy-on-write clone of `main`: it starts with production's schema and data, and writes to it never reach production.
+
+**`npx vercel env pull` overwrites `.env.local` with the production connection string.** After running it, point local development back at the dev branch:
+
+```bash
+npx neon@latest connection-string dev --project-id small-voice-34844459 --pooled
+# put that value in DATABASE_URL in .env.local (and the unpooled one in DATABASE_URL_UNPOOLED)
+```
+
+`npm run db:migrate` and `npm run db:seed` print the endpoint they are about to touch, so check that line before answering for a migration. `npm run db:target` prints it on its own.
+
+To refresh dev with current production data, delete the branch and make it again:
+
+```bash
+npx neon@latest branches delete dev --project-id small-voice-34844459
+npx neon@latest branches create --project-id small-voice-34844459 --name dev --parent main
+```
+
+Neon commands need a signed-in CLI (`npx neon@latest auth`, once per machine).
+
 ## Prerequisites
 
 - Node.js 20.9 or newer
@@ -40,7 +67,8 @@ npm install
 npx vercel login
 npx vercel link --yes --project orangepack-erp
 
-# Download the database credentials into .env.local (git-ignored)
+# Download the credentials into .env.local (git-ignored), then repoint the
+# database at the dev branch — see "Databases" above
 npx vercel env pull .env.local --yes
 
 # Create the tables and load the product catalog
