@@ -73,9 +73,20 @@ The first `integration add` asks you to accept Neon's terms in the browser; run 
 | `npm run dev` | Start the dev server |
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
+| `npm test` | Unit tests for the money, pricing and date rules (`src/lib/*.test.ts`) |
 | `npm run db:generate` | Write a new SQL migration in `drizzle/` from changes to `src/db/schema.ts` |
 | `npm run db:migrate` | Apply pending migrations in `drizzle/` to the database in `.env.local` |
 | `npm run db:seed` | Load `data/theorangepack-catalog.json` into products, variants and price tiers. Safe to re-run: it updates existing rows instead of duplicating them |
+
+## Tests
+
+```bash
+npm test
+```
+
+Node's built-in test runner, run through `tsx`, over `src/lib/*.test.ts` — no test framework to install. The tests cover the rules that decide what a customer is charged: VAT added on top, discounts applied before VAT, tier prices and below-minimum quantities, Thai amount-in-words, and the sales order money (deposit as a share of the total, the balance owing, and repeated edits to a quantity always landing on the same figures). They are pure functions with no database or network, so they run in under a second.
+
+Add a case whenever you change pricing, VAT, deposits or date handling.
 
 ## Changing the database schema
 
