@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNull, or, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/db";
 import { requireStaff } from "@/lib/auth";
 import {
@@ -8,7 +8,10 @@ import {
   productVariants,
   quotationItems,
   quotations,
+  salesOrderItems,
+  salesOrders,
   type QuotationStatus,
+  type SalesOrderStatus,
 } from "@/db/schema";
 
 export type CatalogVariant = {
@@ -153,3 +156,94 @@ export async function getQuotation(id: string) {
 }
 
 export type QuotationWithItems = NonNullable<Awaited<ReturnType<typeof getQuotation>>>;
+
+export const ORDER_STATUS_FILTERS = [
+  "awaiting_production",
+  "in_production",
+  "ready",
+  "delivered",
+  "cancelled",
+] as const;
+
+export async function listSalesOrders(filter: { status?: SalesOrderStatus; q?: string }) {
+  await requireStaff();
+  const db = getDb();
+  const conditions: SQL[] = [];
+  if (filter.status) conditions.push(eq(salesOrders.status, filter.status));
+  if (filter.q) {
+    const term = `%${filter.q.replace(/[%_\\]/g, "\\$&")}%`;
+    conditions.push(
+      or(
+        ilike(salesOrders.number, term),
+        ilike(salesOrders.quotationNumber, term),
+        ilike(salesOrders.customerName, term),
+        ilike(salesOrders.customerCompany, term),
+      )!,
+    );
+  }
+  return db
+    .select({
+      id: salesOrders.id,
+      number: salesOrders.number,
+      status: salesOrders.status,
+      customerName: salesOrders.customerName,
+      customerCompany: salesOrders.customerCompany,
+      orderDate: salesOrders.orderDate,
+      dueDate: salesOrders.dueDate,
+      totalSatang: salesOrders.totalSatang,
+      paidSatang: salesOrders.paidSatang,
+    })
+    .from(salesOrders)
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(salesOrders.createdAt))
+    .limit(200);
+}
+
+export async function getSalesOrderStats() {
+  await requireStaff();
+  return getDb()
+    .select({
+      status: salesOrders.status,
+      count: count(),
+      totalSatang: sql<string>`coalesce(sum(${salesOrders.totalSatang}), 0)`,
+      outstandingSatang: sql<string>`coalesce(sum(${salesOrders.totalSatang} - ${salesOrders.paidSatang}), 0)`,
+    })
+    .from(salesOrders)
+    .groupBy(salesOrders.status);
+}
+
+export async function getSalesOrder(id: string) {
+  await requireStaff();
+  const db = getDb();
+  const [order] = await db.select().from(salesOrders).where(eq(salesOrders.id, id));
+  if (!order) return null;
+  const items = await db
+    .select()
+    .from(salesOrderItems)
+    .where(eq(salesOrderItems.orderId, id))
+    .orderBy(asc(salesOrderItems.position));
+  return { ...order, items };
+}
+
+export type SalesOrderWithItems = NonNullable<Awaited<ReturnType<typeof getSalesOrder>>>;
+
+/** The order made from a quotation, if any — lets the quotation page link to it instead of offering to create a second one. */
+export async function getOrderForQuotation(quotationId: string) {
+  await requireStaff();
+  const [order] = await getDb()
+    .select({ id: salesOrders.id, number: salesOrders.number, status: salesOrders.status })
+    .from(salesOrders)
+    .where(eq(salesOrders.quotationId, quotationId));
+  return order ?? null;
+}
+
+/** Accepted quotations with no order yet — work that has been agreed but not started. */
+export async function countConvertibleQuotations() {
+  await requireStaff();
+  const [row] = await getDb()
+    .select({ n: count() })
+    .from(quotations)
+    .leftJoin(salesOrders, eq(salesOrders.quotationId, quotations.id))
+    .where(and(eq(quotations.status, "accepted"), isNull(salesOrders.id)));
+  return row?.n ?? 0;
+}

@@ -4,6 +4,7 @@ Internal web app for OrangePack staff. The first module issues **quotations (ใ
 
 - **Quotations** — pick products, size and print method; unit prices fill in from the quantity tier, with below-minimum warnings, manual price overrides, discounts, and VAT 7% added on top (catalog prices exclude VAT) or no VAT. Totals are printed with the Thai amount in words.
 - **Status tracking** — draft → sent → accepted / rejected, search, duplicate a quotation.
+- **Sales orders (ใบสั่งขาย)** — an accepted quotation opens a production job: รอผลิต → กำลังผลิต → ผลิตเสร็จ → ส่งแล้ว (or ยกเลิก), with a delivery date, deposit percentage and payments received so each order shows what is still owed. Quantities and prices can be corrected only while the order is still รอผลิต.
 - **Customers** — saved when a quotation is issued, reusable on the next one.
 - **Products & prices** — the full tier price table for all catalog items.
 
@@ -103,10 +104,19 @@ Product photos live in `public/products/` under the same file names as the websi
 
 Issued quotations keep their own copy of product names and prices, so re-seeding never changes existing documents.
 
+## How the modules connect
+
+```
+quotation (accepted) ──► sales order ──► production status ──► delivered
+```
+
+One sales order per quotation, enforced by a unique index. The order snapshots the customer and the lines, so later catalog or customer edits never change an order that has been agreed. Cancelled orders can be reopened or deleted; deleting one frees its quotation to be converted again.
+
 ## Project layout
 
 ```
 src/app/(app)/quotations/   list, new, [id] (document), [id]/edit, server actions
+src/app/(app)/orders/        sales order list, [id] (document + production/payment forms), server actions
 src/app/(app)/customers/    customer list
 src/app/(app)/products/     catalog and tier price tables
 src/app/sign-in/            Clerk sign-in page
@@ -114,7 +124,8 @@ src/app/no-access/          shown to signed-in users who are not on the allowlis
 src/proxy.ts                redirects signed-out visitors to /sign-in
 src/components/             quotation editor, printable document, menu
 src/db/                     Drizzle schema and client
-src/lib/                    staff access check, pricing tiers, money/VAT math, Thai baht text, dates
+src/lib/                    staff access check, pricing tiers, money/VAT math, Thai baht text, dates, order input rules
+drizzle/                    SQL migrations, applied with npm run db:migrate
 scripts/seed.ts       catalog import
 tokens.css            design tokens (brand colours, type, spacing)
 ```

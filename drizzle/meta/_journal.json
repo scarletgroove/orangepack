@@ -15,6 +15,13 @@
       "when": 1789660124829,
       "tag": "0001_quotation_staff_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789694489779,
+      "tag": "0002_sales_orders",
+      "breakpoints": true
     }
   ]
 }

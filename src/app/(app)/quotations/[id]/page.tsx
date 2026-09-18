@@ -7,7 +7,7 @@ import { z } from "zod";
 import { QuotationActions } from "@/components/quotation-actions";
 import { QuotationDocument } from "@/components/quotation-document";
 import { StatusChip } from "@/components/status-chip";
-import { getQuotation } from "@/lib/data";
+import { getOrderForQuotation, getQuotation } from "@/lib/data";
 import { formatThaiDateTime, todayInBangkok } from "@/lib/dates";
 
 export async function generateMetadata(props: PageProps<"/quotations/[id]">): Promise<Metadata> {
@@ -23,6 +23,7 @@ export default async function QuotationPage(props: PageProps<"/quotations/[id]">
   if (!z.uuid().safeParse(id).success) notFound();
   const quotation = await getQuotation(id);
   if (!quotation) notFound();
+  const order = await getOrderForQuotation(id);
 
   return (
     <div className="page page--narrow">
@@ -35,7 +36,7 @@ export default async function QuotationPage(props: PageProps<"/quotations/[id]">
           <p className="doc-toolbar__title doc-no">{quotation.number}</p>
           <StatusChip status={quotation.status} validUntil={quotation.validUntil} today={todayInBangkok()} />
         </div>
-        <QuotationActions id={quotation.id} status={quotation.status} />
+        <QuotationActions id={quotation.id} status={quotation.status} order={order} />
       </div>
       <p className="doc-audit no-print">
         {quotation.createdByEmail && (

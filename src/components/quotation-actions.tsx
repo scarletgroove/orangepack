@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, Copy, Pencil, Printer, RotateCcw, Send, X } from "lucide-react";
+import { ArrowRight, Check, ClipboardList, Copy, Pencil, Printer, RotateCcw, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useTransition } from "react";
+import { createOrderFromQuotation } from "@/app/(app)/orders/actions";
 import { duplicateQuotation, setQuotationStatus } from "@/app/(app)/quotations/actions";
 import type { QuotationStatus } from "@/db/schema";
 
@@ -16,11 +17,38 @@ const transitions: Record<QuotationStatus, { to: QuotationStatus; label: string;
   rejected: [{ to: "sent", label: "ย้อนเป็นส่งแล้ว", icon: RotateCcw }],
 };
 
-export function QuotationActions({ id, status }: { id: string; status: QuotationStatus }) {
+export function QuotationActions({
+  id,
+  status,
+  order,
+}: {
+  id: string;
+  status: QuotationStatus;
+  order: { id: string; number: string } | null;
+}) {
   const [pending, startTransition] = useTransition();
 
   return (
     <div className="page__actions no-print" aria-busy={pending}>
+      {order ? (
+        <Link href={`/orders/${order.id}`} className="btn btn--sm btn--quiet">
+          <ClipboardList size={16} aria-hidden />
+          ใบสั่งขาย {order.number}
+          <ArrowRight size={14} aria-hidden />
+        </Link>
+      ) : (
+        status === "accepted" && (
+          <button
+            type="button"
+            className="btn btn--sm btn--primary"
+            disabled={pending}
+            onClick={() => startTransition(() => createOrderFromQuotation(id))}
+          >
+            <ClipboardList size={16} aria-hidden />
+            เปิดใบสั่งขาย
+          </button>
+        )
+      )}
       {transitions[status].map(({ to, label, icon: Icon, primary }) => (
         <button
           key={to}

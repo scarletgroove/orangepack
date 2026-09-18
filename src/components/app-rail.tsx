@@ -1,13 +1,14 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { FileText, Package, Users } from "lucide-react";
+import { ClipboardList, FileText, Package, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/quotations", label: "ใบเสนอราคา", icon: FileText },
+  { href: "/orders", label: "ใบสั่งขาย", icon: ClipboardList },
   { href: "/customers", label: "ลูกค้า", icon: Users },
   { href: "/products", label: "สินค้า", longLabel: "และราคา", icon: Package },
 ];
