@@ -4,7 +4,7 @@ import { AlertCircle, Save } from "lucide-react";
 import { useActionState, useId, useState } from "react";
 import { updateOrderDetails } from "@/app/(app)/orders/actions";
 import type { SalesOrderWithItems } from "@/lib/data";
-import { formatBaht, parseBahtInput, satangToInput } from "@/lib/money";
+import { formatBaht } from "@/lib/money";
 import { depositOf } from "@/lib/order-math";
 import type { SaveState } from "@/lib/quotation-input";
 
@@ -12,15 +12,12 @@ export function OrderDetailsForm({ order }: { order: SalesOrderWithItems }) {
   const uid = useId();
   const [state, formAction, pending] = useActionState<SaveState, FormData>(updateOrderDetails, null);
   const [depositPercent, setDepositPercent] = useState(String(order.depositBps / 100));
-  const [paidBaht, setPaidBaht] = useState(satangToInput(order.paidSatang));
 
   const percent = Number(depositPercent);
   const depositSatang =
     /^\d{1,3}(\.\d{1,2})?$/.test(depositPercent.trim()) && percent <= 100
       ? depositOf(order.totalSatang, Math.round(percent * 100))
       : null;
-  const paidSatang = paidBaht.trim() === "" ? 0 : parseBahtInput(paidBaht);
-  const outstanding = paidSatang === null ? null : order.totalSatang - paidSatang;
 
   return (
     <form action={formAction} className="order-panel no-print">
@@ -60,30 +57,6 @@ export function OrderDetailsForm({ order }: { order: SalesOrderWithItems }) {
           </p>
         </div>
 
-        <div className="field">
-          <label className="field__label" htmlFor={`${uid}-paid`}>
-            ชำระแล้ว (บาท)
-          </label>
-          <input
-            id={`${uid}-paid`}
-            name="paidBaht"
-            className="input num"
-            inputMode="decimal"
-            value={paidBaht}
-            onChange={(e) => setPaidBaht(e.target.value)}
-            aria-invalid={paidSatang === null ? true : undefined}
-          />
-          <p className={`field__help${paidSatang === null || (outstanding ?? 0) < 0 ? " is-error" : ""}`}>
-            {paidSatang === null
-              ? "ใส่จำนวนเงิน เช่น 40125.00"
-              : outstanding === null || outstanding < 0
-                ? "ยอดชำระมากกว่ายอดรวม"
-                : outstanding === 0
-                  ? "ชำระครบแล้ว"
-                  : `ค้างชำระ ฿${formatBaht(outstanding)}`}
-          </p>
-        </div>
-
         <div className="field span-2">
           <label className="field__label" htmlFor={`${uid}-notes`}>
             หมายเหตุการผลิต
@@ -109,7 +82,7 @@ export function OrderDetailsForm({ order }: { order: SalesOrderWithItems }) {
 
       <button type="submit" className="btn btn--primary btn--sm" disabled={pending}>
         {pending ? <span className="spinner" aria-hidden /> : <Save size={16} aria-hidden />}
-        บันทึกการผลิตและการเงิน
+        บันทึกกำหนดส่งและมัดจำ
       </button>
     </form>
   );

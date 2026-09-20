@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { DEFAULT_DEPOSIT_BPS, isItemsEditable, orderDetailsInput, orderItemsInput } from "./order-input";
+import { DEFAULT_DEPOSIT_BPS, isItemsEditable, orderDetailsInput, orderItemsInput, paymentInput } from "./order-input";
 
 const id = "11111111-1111-4111-8111-111111111111";
 const details = (over: Partial<Record<string, string>> = {}) => ({
   id,
   dueDate: "2026-10-01",
   depositPercent: "50",
-  paidBaht: "40,125.00",
   notes: "ด่วน",
   ...over,
 });
@@ -18,15 +17,12 @@ describe("orderDetailsInput", () => {
       id,
       dueDate: "2026-10-01",
       depositBps: 5000,
-      paidSatang: 4_012_500,
       notes: "ด่วน",
     });
   });
 
-  it("treats an empty due date as not yet agreed and empty payment as zero", () => {
-    const parsed = orderDetailsInput.parse(details({ dueDate: "", paidBaht: "" }));
-    assert.equal(parsed.dueDate, null);
-    assert.equal(parsed.paidSatang, 0);
+  it("treats an empty due date as not yet agreed", () => {
+    assert.equal(orderDetailsInput.parse(details({ dueDate: "" })).dueDate, null);
   });
 
   it("keeps a fractional deposit exact in basis points", () => {
@@ -38,8 +34,6 @@ describe("orderDetailsInput", () => {
       ["depositPercent", "101"],
       ["depositPercent", "abc"],
       ["depositPercent", ""],
-      ["paidBaht", "-5"],
-      ["paidBaht", "1.005"],
       ["dueDate", "31/10/2026"],
     ] as const) {
       assert.equal(orderDetailsInput.safeParse(details({ [field]: value })).success, false, `${field}=${value}`);
@@ -83,5 +77,52 @@ describe("order editing rules", () => {
 
   it("asks half up front by default", () => {
     assert.equal(DEFAULT_DEPOSIT_BPS, 5000);
+  });
+});
+
+describe("paymentInput", () => {
+  const payment = (over: Partial<Record<string, string>> = {}) => ({
+    orderId: id,
+    paidOn: "2026-09-18",
+    amountBaht: "8,025.00",
+    method: "transfer",
+    reference: "SLIP-001",
+    note: "",
+    ...over,
+  });
+
+  it("records an amount received with its date, method and reference", () => {
+    assert.deepEqual(paymentInput.parse(payment()), {
+      orderId: id,
+      paidOn: "2026-09-18",
+      amountSatang: 802_500,
+      method: "transfer",
+      reference: "SLIP-001",
+      note: null,
+    });
+  });
+
+  it("leaves optional fields null rather than empty strings", () => {
+    const parsed = paymentInput.parse(payment({ reference: "", note: "  " }));
+    assert.equal(parsed.reference, null);
+    assert.equal(parsed.note, null);
+  });
+
+  it("rejects a payment that records nothing or cannot have happened", () => {
+    for (const bad of [
+      payment({ amountBaht: "0" }),
+      payment({ amountBaht: "" }),
+      payment({ amountBaht: "-100" }),
+      payment({ paidOn: "" }),
+      payment({ method: "bitcoin" }),
+    ]) {
+      assert.equal(paymentInput.safeParse(bad).success, false, JSON.stringify(bad));
+    }
+  });
+
+  it("accepts every method the shop actually uses", () => {
+    for (const method of ["transfer", "cash", "cheque", "card", "other"]) {
+      assert.equal(paymentInput.safeParse(payment({ method })).success, true, method);
+    }
   });
 });

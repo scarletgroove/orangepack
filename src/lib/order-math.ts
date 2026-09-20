@@ -6,9 +6,19 @@ export function depositOf(totalSatang: number, depositBps: number) {
   return Math.round((totalSatang * depositBps) / 10_000);
 }
 
-/** What the customer still owes. Never negative: an overpayment is settled outside the app. */
+/** What the customer still owes. Never negative; an overpayment is reported separately. */
 export function outstandingOf(totalSatang: number, paidSatang: number) {
   return Math.max(totalSatang - paidSatang, 0);
+}
+
+/** Received beyond the total — a refund to arrange, usually after the order was cut back. */
+export function overpaidOf(totalSatang: number, paidSatang: number) {
+  return Math.max(paidSatang - totalSatang, 0);
+}
+
+/** The ledger is the record of money received; the order's paid figure is only a cached sum of it. */
+export function paidTotalOf(payments: { amountSatang: number }[]) {
+  return payments.reduce((sum, p) => sum + p.amountSatang, 0);
 }
 
 export type OrderPricing = {
@@ -27,6 +37,7 @@ export type OrderMoney = {
   depositSatang: number;
   paidSatang: number;
   outstandingSatang: number;
+  overpaidSatang: number;
 };
 
 /**
@@ -39,9 +50,9 @@ export function recomputeOrderMoney(
   pricing: OrderPricing,
 ): OrderMoney {
   const totals = computeTotals(lines, pricing.discountBps, pricing.vatMode, pricing.vatBps);
-  // Money already received cannot exceed a total that has just been cut: leaving paid above the total
-  // would show a negative balance and then block every later save of the payment form.
-  const paidSatang = Math.min(pricing.paidSatang, totals.total);
+  // Payments are a ledger of money that actually arrived, so cutting the order never rewrites them.
+  // Anything received beyond the new total shows up as an overpayment to refund.
+  const paidSatang = pricing.paidSatang;
   return {
     subtotalSatang: totals.subtotal,
     discountSatang: totals.discount,
@@ -50,5 +61,6 @@ export function recomputeOrderMoney(
     depositSatang: depositOf(totals.total, pricing.depositBps),
     paidSatang,
     outstandingSatang: outstandingOf(totals.total, paidSatang),
+    overpaidSatang: overpaidOf(totals.total, paidSatang),
   };
 }

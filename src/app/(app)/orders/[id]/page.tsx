@@ -8,6 +8,7 @@ import { OrderActions } from "@/components/order-actions";
 import { OrderDetailsForm } from "@/components/order-details-form";
 import { OrderDocument } from "@/components/order-document";
 import { OrderItemsEditor } from "@/components/order-items-editor";
+import { OrderPayments } from "@/components/order-payments";
 import { OrderStatusChip } from "@/components/order-status-chip";
 import { getSalesOrder } from "@/lib/data";
 import { formatThaiDateTime, todayInBangkok } from "@/lib/dates";
@@ -28,6 +29,7 @@ export default async function OrderPage(props: PageProps<"/orders/[id]">) {
   if (!order) notFound();
 
   const editable = isItemsEditable(order.status);
+  const today = todayInBangkok();
   // The forms below hold typed values in client state; this key remounts them with fresh figures after every save.
   const savedAt = `${order.updatedAt.toISOString()}-${order.totalSatang}-${order.paidSatang}`;
 
@@ -41,7 +43,7 @@ export default async function OrderPage(props: PageProps<"/orders/[id]">) {
       <div className="doc-toolbar no-print">
         <div className="doc-toolbar__status">
           <p className="doc-toolbar__title doc-no">{order.number}</p>
-          <OrderStatusChip status={order.status} dueDate={order.dueDate} today={todayInBangkok()} />
+          <OrderStatusChip status={order.status} dueDate={order.dueDate} today={today} />
         </div>
         <OrderActions id={order.id} status={order.status} />
       </div>
@@ -56,7 +58,18 @@ export default async function OrderPage(props: PageProps<"/orders/[id]">) {
 
       <section className="section no-print">
         <div className="section__head">
-          <h2 className="section__title">การผลิตและการชำระเงิน</h2>
+          <h2 className="section__title">การชำระเงิน</h2>
+        </div>
+        {order.status === "cancelled" ? (
+          <p className="page__lede">ใบสั่งขายนี้ถูกยกเลิกแล้ว บันทึกการชำระเงินเพิ่มไม่ได้</p>
+        ) : (
+          <OrderPayments key={`${order.payments.length}-${order.paidSatang}`} order={order} today={today} />
+        )}
+      </section>
+
+      <section className="section no-print">
+        <div className="section__head">
+          <h2 className="section__title">กำหนดส่งและมัดจำ</h2>
         </div>
         {order.status === "cancelled" ? (
           <p className="page__lede">ใบสั่งขายนี้ถูกยกเลิกแล้ว เปิดใหม่อีกครั้งก่อนจึงจะแก้ไขได้</p>

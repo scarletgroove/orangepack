@@ -3,14 +3,16 @@ import Link from "next/link";
 import { ORDER_STATUS_LABEL } from "@/components/order-status-chip";
 import { company } from "@/lib/company";
 import type { SalesOrderWithItems } from "@/lib/data";
-import { formatThaiDate } from "@/lib/dates";
+import { formatThaiDate, formatThaiDateShort } from "@/lib/dates";
 import { bahtText, formatBaht, formatQty } from "@/lib/money";
-import { depositOf, outstandingOf } from "@/lib/order-math";
+import { METHOD_LABEL } from "@/components/order-payments";
+import { depositOf, outstandingOf, overpaidOf } from "@/lib/order-math";
 
 export function OrderDocument({ order }: { order: SalesOrderWithItems }) {
   const afterDiscount = order.subtotalSatang - order.discountSatang;
   const depositSatang = depositOf(order.totalSatang, order.depositBps);
   const outstanding = outstandingOf(order.totalSatang, order.paidSatang);
+  const overpaid = overpaidOf(order.totalSatang, order.paidSatang);
 
   return (
     <article className="sheet" aria-label={`ใบสั่งขาย ${order.number}`}>
@@ -163,11 +165,29 @@ export function OrderDocument({ order }: { order: SalesOrderWithItems }) {
             <dd className="num">{formatBaht(order.paidSatang)}</dd>
           </div>
           <div className="sheet__pay sheet__pay--due">
-            <dt>{outstanding > 0 ? "ค้างชำระ" : "ชำระครบแล้ว"}</dt>
-            <dd className="num">{formatBaht(outstanding)}</dd>
+            <dt>{overpaid > 0 ? "ชำระเกิน" : outstanding > 0 ? "ค้างชำระ" : "ชำระครบแล้ว"}</dt>
+            <dd className="num">{formatBaht(overpaid > 0 ? overpaid : outstanding)}</dd>
           </div>
         </dl>
       </div>
+
+      {order.payments.length > 0 && (
+        <section className="sheet__ledger">
+          <span className="sheet__label">การชำระเงินที่ได้รับ</span>
+          <ul>
+            {order.payments.map((payment) => (
+              <li key={payment.id}>
+                <span className="num">{formatThaiDateShort(payment.paidOn)}</span>
+                <span>
+                  {METHOD_LABEL[payment.method]}
+                  {payment.reference && ` · ${payment.reference}`}
+                </span>
+                <span className="num">{formatBaht(payment.amountSatang)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <p className="sheet__words">({bahtText(order.totalSatang)})</p>
 

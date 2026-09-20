@@ -1518,3 +1518,75 @@ h3 {
 .due--none {
   font-style: italic;
 }
+
+/* ---------- payments ---------- */
+.pay-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: var(--rule-hair);
+}
+.pay-summary dt {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+.pay-summary dd {
+  font-size: var(--text-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pay-summary .is-due dd {
+  color: var(--color-error);
+}
+.pay-table {
+  width: 100%;
+  margin-bottom: var(--space-md);
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.pay-table th {
+  padding-bottom: var(--space-2xs);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-align: left;
+}
+.pay-table td {
+  padding: var(--space-2xs) var(--space-xs) var(--space-2xs) 0;
+  border-top: var(--rule-hair);
+  vertical-align: top;
+}
+.pay-table .is-right {
+  text-align: right;
+}
+.pay-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-xs) var(--space-sm);
+}
+@media (min-width: 48rem) {
+  .pay-form {
+    grid-template-columns: 10rem 9rem 8rem minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+}
+.sheet__ledger {
+  margin-top: var(--space-md);
+}
+.sheet__ledger ul {
+  margin-top: var(--space-2xs);
+  list-style: none;
+}
+.sheet__ledger li {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr) 7rem;
+  gap: var(--space-sm);
+  padding: var(--space-3xs) 0;
+  border-bottom: var(--rule-hair);
+  font-size: var(--text-sm);
+}
+.sheet__ledger li > :last-child {
+  text-align: right;
+}

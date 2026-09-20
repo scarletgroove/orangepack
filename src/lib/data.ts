@@ -10,6 +10,7 @@ import {
   quotationItems,
   quotations,
   salesOrderItems,
+  salesOrderPayments,
   salesOrders,
   type QuotationStatus,
   type SalesOrderStatus,
@@ -218,12 +219,19 @@ export async function getSalesOrder(id: string) {
   const db = getDb();
   const [order] = await db.select().from(salesOrders).where(eq(salesOrders.id, id));
   if (!order) return null;
-  const items = await db
-    .select()
-    .from(salesOrderItems)
-    .where(eq(salesOrderItems.orderId, id))
-    .orderBy(asc(salesOrderItems.position));
-  return { ...order, items };
+  const [items, payments] = await Promise.all([
+    db
+      .select()
+      .from(salesOrderItems)
+      .where(eq(salesOrderItems.orderId, id))
+      .orderBy(asc(salesOrderItems.position)),
+    db
+      .select()
+      .from(salesOrderPayments)
+      .where(eq(salesOrderPayments.orderId, id))
+      .orderBy(asc(salesOrderPayments.paidOn), asc(salesOrderPayments.id)),
+  ]);
+  return { ...order, items, payments };
 }
 
 export type SalesOrderWithItems = NonNullable<Awaited<ReturnType<typeof getSalesOrder>>>;

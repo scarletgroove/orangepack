@@ -1,12 +1,13 @@
 "use server";
 
-import { eq, like, sql } from "drizzle-orm";
+import { and, eq, like, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db";
 import {
   salesOrderItems,
+  salesOrderPayments,
   salesOrders,
   salesOrderStatus,
   type SalesOrderStatus,
@@ -14,8 +15,15 @@ import {
 import { requireStaff } from "@/lib/auth";
 import { getOrderForQuotation, getQuotation, getSalesOrder } from "@/lib/data";
 import { todayInBangkok } from "@/lib/dates";
-import { recomputeOrderMoney } from "@/lib/order-math";
-import { DEFAULT_DEPOSIT_BPS, isItemsEditable, orderDetailsInput, orderItemsInput } from "@/lib/order-input";
+import { paidTotalOf, recomputeOrderMoney } from "@/lib/order-math";
+import {
+  DEFAULT_DEPOSIT_BPS,
+  deletePaymentInput,
+  isItemsEditable,
+  orderDetailsInput,
+  orderItemsInput,
+  paymentInput,
+} from "@/lib/order-input";
 import type { SaveState } from "@/lib/quotation-input";
 
 type Db = ReturnType<typeof getDb>;
@@ -156,14 +164,13 @@ export async function setOrderStatus(id: string, status: string) {
   refresh();
 }
 
-/** Due date, deposit, payment received and the production note. Editable at any status except cancelled. */
+/** Due date, deposit and the production note. Money received is recorded as payments, not typed here. */
 export async function updateOrderDetails(_prev: SaveState, formData: FormData): Promise<SaveState> {
   const by = await requireStaff();
   const result = orderDetailsInput.safeParse({
     id: formData.get("id"),
     dueDate: formData.get("dueDate"),
     depositPercent: formData.get("depositPercent"),
-    paidBaht: formData.get("paidBaht"),
     notes: formData.get("notes"),
   });
   if (!result.success) return { ok: false, message: result.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
@@ -171,16 +178,13 @@ export async function updateOrderDetails(_prev: SaveState, formData: FormData): 
 
   const db = getDb();
   const [order] = await db
-    .select({ status: salesOrders.status, totalSatang: salesOrders.totalSatang, orderDate: salesOrders.orderDate })
+    .select({ status: salesOrders.status, orderDate: salesOrders.orderDate })
     .from(salesOrders)
     .where(eq(salesOrders.id, input.id));
   if (!order) return { ok: false, message: "ไม่พบใบสั่งขายนี้" };
   if (order.status === "cancelled") return { ok: false, message: "ใบสั่งขายที่ยกเลิกแล้วแก้ไขไม่ได้" };
   if (input.dueDate && input.dueDate < order.orderDate) {
     return { ok: false, message: "กำหนดส่งต้องไม่ก่อนวันที่เปิดใบสั่งขาย" };
-  }
-  if (input.paidSatang > order.totalSatang) {
-    return { ok: false, message: "ยอดชำระมากกว่ายอดรวมของใบสั่งขาย" };
   }
 
   try {
@@ -189,7 +193,6 @@ export async function updateOrderDetails(_prev: SaveState, formData: FormData): 
       .set({
         dueDate: input.dueDate,
         depositBps: input.depositBps,
-        paidSatang: input.paidSatang,
         notes: input.notes || null,
         updatedAt: new Date(),
         updatedByEmail: by.email,
@@ -255,7 +258,6 @@ export async function updateOrderItems(_prev: SaveState, formData: FormData): Pr
           discountSatang: money.discountSatang,
           vatSatang: money.vatSatang,
           totalSatang: money.totalSatang,
-          paidSatang: money.paidSatang,
           updatedAt: new Date(),
           updatedByEmail: by.email,
           updatedByName: by.name,
@@ -277,4 +279,75 @@ export async function deleteOrder(id: string) {
   const orderId = z.uuid().parse(id);
   await getDb().delete(salesOrders).where(eq(salesOrders.id, orderId));
   redirect("/orders");
+}
+
+/** Refreshes the cached paid total on the order from its ledger. Runs in the same write as every change. */
+async function syncPaidTotal(db: Db, orderId: string, by: { email: string | null; name: string | null }) {
+  const rows = await db
+    .select({ amountSatang: salesOrderPayments.amountSatang })
+    .from(salesOrderPayments)
+    .where(eq(salesOrderPayments.orderId, orderId));
+  await db
+    .update(salesOrders)
+    .set({
+      paidSatang: paidTotalOf(rows),
+      updatedAt: new Date(),
+      updatedByEmail: by.email,
+      updatedByName: by.name,
+    })
+    .where(eq(salesOrders.id, orderId));
+}
+
+/** Records money received. Each payment keeps its own date, method and reference. */
+export async function addOrderPayment(_prev: SaveState, formData: FormData): Promise<SaveState> {
+  const by = await requireStaff();
+  const result = paymentInput.safeParse({
+    orderId: formData.get("orderId"),
+    paidOn: formData.get("paidOn"),
+    amountBaht: formData.get("amountBaht"),
+    method: formData.get("method"),
+    reference: formData.get("reference"),
+    note: formData.get("note"),
+  });
+  if (!result.success) return { ok: false, message: result.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
+  const input = result.data;
+
+  const db = getDb();
+  const [order] = await db
+    .select({ status: salesOrders.status })
+    .from(salesOrders)
+    .where(eq(salesOrders.id, input.orderId));
+  if (!order) return { ok: false, message: "ไม่พบใบสั่งขายนี้" };
+  if (order.status === "cancelled") return { ok: false, message: "ใบสั่งขายที่ยกเลิกแล้วบันทึกการชำระเงินไม่ได้" };
+
+  try {
+    await db.insert(salesOrderPayments).values({
+      orderId: input.orderId,
+      paidOn: input.paidOn,
+      amountSatang: input.amountSatang,
+      method: input.method,
+      reference: input.reference,
+      note: input.note,
+      createdByEmail: by.email,
+      createdByName: by.name,
+    });
+    await syncPaidTotal(db, input.orderId, by);
+  } catch (err) {
+    console.error("addOrderPayment failed", err);
+    return { ok: false, message: "บันทึกการชำระเงินไม่สำเร็จ ลองอีกครั้งในอีกสักครู่" };
+  }
+  refresh();
+  return null;
+}
+
+/** Removes a payment recorded by mistake. */
+export async function deleteOrderPayment(orderId: string, paymentId: number) {
+  const by = await requireStaff();
+  const input = deletePaymentInput.parse({ orderId, paymentId });
+  const db = getDb();
+  await db
+    .delete(salesOrderPayments)
+    .where(and(eq(salesOrderPayments.id, input.paymentId), eq(salesOrderPayments.orderId, input.orderId)));
+  await syncPaidTotal(db, input.orderId, by);
+  refresh();
 }

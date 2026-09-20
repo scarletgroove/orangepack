@@ -6,6 +6,7 @@ Internal web app for OrangePack staff. The first module issues **quotations (ใ
 - **Quotations** — pick products, size and print method; unit prices fill in from the quantity tier, with below-minimum warnings, manual price overrides, discounts, and VAT 7% added on top (catalog prices exclude VAT) or no VAT. Totals are printed with the Thai amount in words.
 - **Status tracking** — draft → sent → accepted / rejected, search, duplicate a quotation.
 - **Sales orders (ใบสั่งขาย)** — an accepted quotation opens a production job: รอผลิต → กำลังผลิต → ผลิตเสร็จ → ส่งแล้ว (or ยกเลิก), with a delivery date, deposit percentage and payments received so each order shows what is still owed. Quantities and prices can be corrected only while the order is still รอผลิต.
+- **Payments (การชำระเงิน)** — each amount received is its own row: date, method (โอนเงิน / เงินสด / เช็ค / บัตร / อื่น ๆ), reference and note. A deposit and the balance are two dated entries, the order shows ค้างชำระ or ชำระเกิน, and the payments print on the job sheet.
 - **Customers** — saved when a quotation is issued, reusable on the next one.
 - **Products & prices** — the full tier price table for all catalog items.
 
@@ -165,6 +166,8 @@ Issued quotations keep their own copy of product names and prices, so re-seeding
 quotation (accepted) ──► sales order ──► production status ──► delivered
 ```
 
+Money received lives in `sales_order_payments`, the record of what actually arrived. `sales_orders.paid_satang` is only a cached sum of it, refreshed in the same write whenever a payment is added or removed, so lists and the dashboard need no join. Cutting an order below what has been paid never rewrites a payment: the order reports ชำระเกิน instead, a refund to settle outside the app.
+
 One sales order per quotation, enforced by a unique index. The order snapshots the customer and the lines, so later catalog or customer edits never change an order that has been agreed. Cancelled orders can be reopened or deleted; deleting one frees its quotation to be converted again.
 
 ## Project layout
@@ -180,7 +183,7 @@ src/app/no-access/          shown to signed-in users who are not on the allowlis
 src/proxy.ts                redirects signed-out visitors to /sign-in
 src/components/             quotation editor, printable document, menu
 src/db/                     Drizzle schema and client
-src/lib/                    staff access check, pricing tiers, money/VAT math, Thai baht text, dates, order input rules, job urgency
+src/lib/                    staff access check, pricing tiers, money/VAT math, Thai baht text, dates, order and payment input rules, job urgency
 drizzle/                    SQL migrations, applied with npm run db:migrate
 scripts/seed.ts       catalog import
 tokens.css            design tokens (brand colours, type, spacing)

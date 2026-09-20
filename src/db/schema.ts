@@ -21,6 +21,8 @@ export const quotationStatus = pgEnum("quotation_status", [
 
 export const vatMode = pgEnum("vat_mode", ["exclusive", "none"]);
 
+export const paymentMethod = pgEnum("payment_method", ["transfer", "cash", "cheque", "card", "other"]);
+
 export const salesOrderStatus = pgEnum("sales_order_status", [
   "awaiting_production",
   "in_production",
@@ -179,8 +181,10 @@ export const salesOrders = pgTable(
     discountSatang: bigint("discount_satang", { mode: "number" }).notNull(),
     vatSatang: bigint("vat_satang", { mode: "number" }).notNull(),
     totalSatang: bigint("total_satang", { mode: "number" }).notNull(),
-    // Deposit asked for up front, as basis points of the total (5000 = 50%). Paid is the running total received.
+    // Deposit asked for up front, as basis points of the total (5000 = 50%).
     depositBps: integer("deposit_bps").notNull().default(0),
+    // Sum of sales_order_payments, kept here so lists and the dashboard need no join. The payments table
+    // is the record; this is refreshed in the same write whenever a payment is added or removed.
     paidSatang: bigint("paid_satang", { mode: "number" }).notNull().default(0),
     createdByEmail: text("created_by_email"),
     createdByName: text("created_by_name"),
@@ -220,3 +224,27 @@ export const salesOrderItems = pgTable(
 );
 
 export type SalesOrderStatus = (typeof salesOrderStatus.enumValues)[number];
+
+// Each amount actually received, so a deposit and the balance are two rows with their own dates,
+// rather than one running total that loses when the money arrived.
+export const salesOrderPayments = pgTable(
+  "sales_order_payments",
+  {
+    id: serial("id").primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => salesOrders.id, { onDelete: "cascade" }),
+    paidOn: date("paid_on").notNull(),
+    amountSatang: bigint("amount_satang", { mode: "number" }).notNull(),
+    method: paymentMethod("method").notNull().default("transfer"),
+    // Slip number, cheque number or bank reference — whatever ties the row to the bank statement.
+    reference: text("reference"),
+    note: text("note"),
+    createdByEmail: text("created_by_email"),
+    createdByName: text("created_by_name"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sales_order_payments_order_idx").on(t.orderId, t.paidOn)],
+);
+
+export type PaymentMethod = (typeof paymentMethod.enumValues)[number];

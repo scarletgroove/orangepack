@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { SalesOrderStatus } from "@/db/schema";
+import { paymentMethod, type SalesOrderStatus } from "@/db/schema";
 import { parseBahtInput } from "@/lib/money";
 
 /** Printing work is normally half up front; staff can change it per order. */
@@ -22,7 +22,7 @@ const baht = z
   .transform((v, ctx) => {
     const satang = v === "" ? 0 : parseBahtInput(v);
     if (satang === null) {
-      ctx.addIssue({ code: "custom", message: "ยอดชำระต้องเป็นจำนวนเงิน เช่น 40125.00" });
+      ctx.addIssue({ code: "custom", message: "จำนวนเงินไม่ถูกต้อง เช่น 40125.00" });
       return z.NEVER;
     }
     return satang;
@@ -33,15 +33,32 @@ export const orderDetailsInput = z
     id: z.uuid(),
     dueDate: z.union([z.literal(""), z.iso.date("กำหนดส่งไม่ถูกต้อง")]),
     depositPercent: percent,
-    paidBaht: baht,
     notes: z.string().trim().max(2000),
   })
-  .transform(({ depositPercent, paidBaht, dueDate, ...rest }) => ({
+  .transform(({ depositPercent, dueDate, ...rest }) => ({
     ...rest,
     dueDate: dueDate === "" ? null : dueDate,
     depositBps: depositPercent,
-    paidSatang: paidBaht,
   }));
+
+export const paymentInput = z
+  .object({
+    orderId: z.uuid(),
+    paidOn: z.iso.date("วันที่รับชำระไม่ถูกต้อง"),
+    amountBaht: baht,
+    method: z.enum(paymentMethod.enumValues),
+    reference: z.string().trim().max(100),
+    note: z.string().trim().max(500),
+  })
+  .refine((p) => p.amountBaht > 0, { message: "จำนวนเงินต้องมากกว่า 0", path: ["amountBaht"] })
+  .transform(({ amountBaht, reference, note, ...rest }) => ({
+    ...rest,
+    amountSatang: amountBaht,
+    reference: reference || null,
+    note: note || null,
+  }));
+
+export const deletePaymentInput = z.object({ orderId: z.uuid(), paymentId: z.number().int().positive() });
 
 export const orderItemsInput = z.object({
   id: z.uuid(),
