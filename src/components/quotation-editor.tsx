@@ -16,6 +16,7 @@ import {
   parseQtyInput,
   satangToInput,
 } from "@/lib/money";
+import { depositOf } from "@/lib/order-math";
 import { matchTier } from "@/lib/pricing";
 import type { QuotationInput, SaveState } from "@/lib/quotation-input";
 
@@ -33,6 +34,8 @@ export type EditorInitial = {
   discountBps: number;
   vatMode: VatMode;
   notes: string;
+  depositBps: number;
+  paymentTerms: string;
   items: {
     productId: number | null;
     variantId: number | null;
@@ -105,6 +108,8 @@ export function QuotationEditor({
   );
   const [vatMode, setVatMode] = useState<VatMode>(initial.vatMode);
   const [notes, setNotes] = useState(initial.notes);
+  const [depositInput, setDepositInput] = useState(String(initial.depositBps / 100));
+  const [paymentTerms, setPaymentTerms] = useState(initial.paymentTerms);
   const [showErrors, setShowErrors] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
   const [removed, setRemoved] = useState<{ row: Row; index: number } | null>(null);
@@ -189,6 +194,11 @@ export function QuotationEditor({
     /^\d{1,3}(\.\d{1,2})?$/.test(discountInput.trim()) && discountPercent >= 0 && discountPercent <= 100;
   const discountBps = discountValid ? Math.round(discountPercent * 100) : 0;
 
+  const depositPercent = Number(depositInput);
+  const depositValid =
+    /^\d{1,3}(\.\d{1,2})?$/.test(depositInput.trim()) && depositPercent >= 0 && depositPercent <= 100;
+  const depositBps = depositValid ? Math.round(depositPercent * 100) : 0;
+
   const lines = rows.map((row) => {
     const variant = row.variantId ? variantById.get(row.variantId) : undefined;
     const quantity = parseQtyInput(row.qtyInput);
@@ -213,6 +223,7 @@ export function QuotationEditor({
   });
 
   const totals = computeTotals(lines, discountBps, vatMode);
+  const depositSatang = depositOf(totals.total, depositBps);
   const catalogQty = lines.reduce((n, l) => n + (l.row.kind === "catalog" ? l.quantity : 0), 0);
 
   const firstProblem = (() => {
@@ -222,6 +233,7 @@ export function QuotationEditor({
     const bad = lines.findIndex((l) => !l.valid);
     if (bad >= 0) return `รายการที่ ${bad + 1} ยังกรอกไม่ครบ`;
     if (!discountValid) return "ส่วนลดต้องเป็นตัวเลข 0–100";
+    if (!depositValid) return "มัดจำต้องเป็นตัวเลข 0–100";
     if (!issueDate || !validUntil) return "ระบุวันที่ออกเอกสารและวันยืนราคา";
     if (validUntil < issueDate) return "วันยืนราคาต้องไม่ก่อนวันที่ออกเอกสาร";
     return null;
@@ -237,6 +249,8 @@ export function QuotationEditor({
     discountBps,
     vatMode,
     notes,
+    depositBps,
+    paymentTerms,
     items: lines.map((l) => ({
       productId: l.row.kind === "catalog" ? l.row.productId : null,
       variantId: l.row.kind === "catalog" ? l.row.variantId : null,
@@ -674,6 +688,19 @@ export function QuotationEditor({
                 </p>
               </div>
               <div className="field span-2">
+                <label className="field__label" htmlFor={`${uid}-terms-pay`}>
+                  เงื่อนไขการชำระเงิน
+                </label>
+                <textarea
+                  id={`${uid}-terms-pay`}
+                  className="textarea"
+                  rows={3}
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                />
+                <p className="field__help" />
+              </div>
+              <div className="field span-2">
                 <label className="field__label" htmlFor={`${uid}-notes`}>
                   หมายเหตุบนใบเสนอราคา
                 </label>
@@ -750,6 +777,23 @@ export function QuotationEditor({
             </div>
           </fieldset>
 
+          <div className="field">
+            <label className="field__label" htmlFor={`${uid}-deposit`}>
+              มัดจำ (%)
+            </label>
+            <input
+              id={`${uid}-deposit`}
+              className="input num"
+              inputMode="decimal"
+              value={depositInput}
+              aria-invalid={!depositValid ? true : undefined}
+              onChange={(e) => setDepositInput(e.target.value)}
+            />
+            <p className={`field__help${!depositValid ? " is-error" : ""}`}>
+              {!depositValid ? "ใส่ตัวเลข 0–100" : ""}
+            </p>
+          </div>
+
           <dl className="summary__rows">
             <div className="summary__row">
               <dt>รวมเป็นเงิน</dt>
@@ -774,6 +818,19 @@ export function QuotationEditor({
             <span className="summary__total-value num">฿{formatBaht(totals.total)}</span>
             <span className="summary__words">({bahtText(totals.total)})</span>
           </div>
+
+          {depositBps > 0 && (
+            <dl className="summary__rows">
+              <div className="summary__row">
+                <dt>มัดจำ {depositInput}%</dt>
+                <dd className="num">฿{formatBaht(depositSatang)}</dd>
+              </div>
+              <div className="summary__row">
+                <dt>ส่วนที่เหลือ</dt>
+                <dd className="num">฿{formatBaht(totals.total - depositSatang)}</dd>
+              </div>
+            </dl>
+          )}
 
           <button type="submit" className="btn btn--primary" disabled={pending}>
             {pending ? (

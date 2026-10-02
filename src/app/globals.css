@@ -1419,7 +1419,7 @@ h3 {
 .sheet__pay dd {
   color: var(--color-ink-2);
 }
-.sheet__totals .sheet__pay:first-of-type {
+.sheet__grand + .sheet__pay {
   margin-top: var(--space-xs);
   padding-top: var(--space-xs);
   border-top: var(--rule-hair);
@@ -1450,7 +1450,7 @@ h3 {
   .sheet__table thead {
     display: table-header-group;
   }
-  .sheet__totals .sheet__pay:first-of-type {
+  .sheet__grand + .sheet__pay {
     border-top-color: var(--color-ink-2);
   }
 }

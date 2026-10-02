@@ -90,7 +90,7 @@ export async function createOrderFromQuotation(quotationId: string) {
           discountSatang: quotation.discountSatang,
           vatSatang: quotation.vatSatang,
           totalSatang: quotation.totalSatang,
-          depositBps: DEFAULT_DEPOSIT_BPS,
+          depositBps: quotation.depositBps ?? DEFAULT_DEPOSIT_BPS,
           paidSatang: 0,
           createdByEmail: by.email,
           createdByName: by.name,

@@ -3,10 +3,13 @@ import { company } from "@/lib/company";
 import type { QuotationWithItems } from "@/lib/data";
 import { formatThaiDate } from "@/lib/dates";
 import { bahtText, formatBaht, formatQty } from "@/lib/money";
+import { depositOf } from "@/lib/order-math";
 
 export function QuotationDocument({ q }: { q: QuotationWithItems }) {
   const afterDiscount = q.subtotalSatang - q.discountSatang;
   const discountPercent = q.discountBps / 100;
+  const depositBps = q.depositBps ?? 0;
+  const depositSatang = depositOf(q.totalSatang, depositBps);
 
   return (
     <article className="sheet" aria-label={`ใบเสนอราคา ${q.number}`}>
@@ -94,6 +97,12 @@ export function QuotationDocument({ q }: { q: QuotationWithItems }) {
 
       <div className="sheet__foot">
         <div className="sheet__notes">
+          {q.paymentTerms && (
+            <>
+              <span className="sheet__label">เงื่อนไขการชำระเงิน</span>
+              <p>{q.paymentTerms}</p>
+            </>
+          )}
           {q.notes && (
             <>
               <span className="sheet__label">หมายเหตุ</span>
@@ -128,6 +137,18 @@ export function QuotationDocument({ q }: { q: QuotationWithItems }) {
             <dt>รวมทั้งสิ้น (บาท)</dt>
             <dd className="num">{formatBaht(q.totalSatang)}</dd>
           </div>
+          {depositBps > 0 && (
+            <>
+              <div className="sheet__pay">
+                <dt>มัดจำ {depositBps / 100}%</dt>
+                <dd className="num">{formatBaht(depositSatang)}</dd>
+              </div>
+              <div className="sheet__pay">
+                <dt>ชำระส่วนที่เหลือ</dt>
+                <dd className="num">{formatBaht(q.totalSatang - depositSatang)}</dd>
+              </div>
+            </>
+          )}
         </dl>
       </div>
 

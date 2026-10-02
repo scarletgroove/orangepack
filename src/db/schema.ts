@@ -106,6 +106,10 @@ export const quotations = pgTable(
     vatMode: vatMode("vat_mode").notNull().default("exclusive"),
     vatBps: integer("vat_bps").notNull().default(700),
     notes: text("notes"),
+    // Deposit the customer is asked for, as basis points of the total (5000 = 50%). Carried onto the sales order.
+    // Null on quotations made before this was asked, which then fall back to the default deposit.
+    depositBps: integer("deposit_bps"),
+    paymentTerms: text("payment_terms"),
     subtotalSatang: bigint("subtotal_satang", { mode: "number" }).notNull(),
     discountSatang: bigint("discount_satang", { mode: "number" }).notNull(),
     vatSatang: bigint("vat_satang", { mode: "number" }).notNull(),

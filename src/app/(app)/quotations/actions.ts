@@ -145,6 +145,8 @@ export async function saveQuotation(_prev: SaveState, formData: FormData): Promi
       vatMode: parsed.vatMode,
       vatBps: VAT_BPS,
       notes: parsed.notes || null,
+      depositBps: parsed.depositBps,
+      paymentTerms: parsed.paymentTerms || null,
       subtotalSatang: totals.subtotal,
       discountSatang: totals.discount,
       vatSatang: totals.vat,

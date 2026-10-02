@@ -29,6 +29,8 @@ export const quotationInput = z
     discountBps: z.number().int().min(0).max(10_000),
     vatMode: z.enum(["exclusive", "none"]),
     notes: optionalText(2000),
+    depositBps: z.number().int().min(0, "มัดจำต้องเป็นตัวเลข 0–100").max(10_000, "มัดจำต้องเป็นตัวเลข 0–100"),
+    paymentTerms: optionalText(2000),
     items: z.array(quotationItemInput).min(1, "เพิ่มอย่างน้อย 1 รายการ").max(100),
   })
   .refine((q) => q.validUntil >= q.issueDate, {

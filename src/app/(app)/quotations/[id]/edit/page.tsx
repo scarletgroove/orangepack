@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { z } from "zod";
 import { QuotationEditor } from "@/components/quotation-editor";
 import { getCatalog, getCustomers, getQuotation } from "@/lib/data";
+import { DEFAULT_DEPOSIT_BPS } from "@/lib/order-input";
 
 export const metadata: Metadata = { title: "แก้ไขใบเสนอราคา" };
 
@@ -55,6 +56,8 @@ export default async function EditQuotationPage(props: PageProps<"/quotations/[i
           discountBps: quotation.discountBps,
           vatMode: quotation.vatMode,
           notes: quotation.notes ?? "",
+          depositBps: quotation.depositBps ?? DEFAULT_DEPOSIT_BPS,
+          paymentTerms: quotation.paymentTerms ?? "",
           items: quotation.items.map((item) => ({
             productId: item.productId,
             variantId: item.variantId,

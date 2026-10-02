@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { QuotationEditor } from "@/components/quotation-editor";
-import { DEFAULT_VALIDITY_DAYS, defaultQuotationNotes } from "@/lib/company";
+import { DEFAULT_VALIDITY_DAYS, defaultPaymentTerms, defaultQuotationNotes } from "@/lib/company";
 import { getCatalog, getCustomers } from "@/lib/data";
 import { addDays, todayInBangkok } from "@/lib/dates";
+import { DEFAULT_DEPOSIT_BPS } from "@/lib/order-input";
 
 export const metadata: Metadata = { title: "สร้างใบเสนอราคา" };
 
@@ -39,6 +40,8 @@ export default async function NewQuotationPage() {
           discountBps: 0,
           vatMode: "exclusive",
           notes: defaultQuotationNotes,
+          depositBps: DEFAULT_DEPOSIT_BPS,
+          paymentTerms: defaultPaymentTerms,
           items: [],
         }}
       />
