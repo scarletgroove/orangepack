@@ -1590,3 +1590,16 @@ h3 {
 .sheet__ledger li > :last-child {
   text-align: right;
 }
+
+.profile-viewer {
+  display: block;
+  width: 100%;
+  height: min(85vh, 70rem);
+  border: var(--rule-hair);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-3);
+}
+.profile-viewer__fallback {
+  padding: var(--space-lg);
+  color: var(--color-ink-2);
+}
