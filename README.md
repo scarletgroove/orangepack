@@ -218,7 +218,7 @@ Then Verify in Clerk, and Deploy certificates once every record is green. To che
 
 Paste the client ID and secret into Clerk, and publish the consent screen (while it is in Testing, only listed test users can sign in).
 
-**5. Create the Hostinger Node.js app** on the domain `erp.orangepack.shop` (hPanel adds the subdomain's A record itself), from the GitHub repo with build command `npm run build:webpack` and start command `npm start`. (Turbopack's default `npm run build` crashes on Hostinger: its sandbox kills the PostCSS worker process Turbopack spawns for `globals.css`. Webpack runs PostCSS in-process.) Turn on SSL for the subdomain and GitHub auto-deploy. Set these environment variables, then rebuild — `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a rebuild:
+**5. Create the Hostinger Node.js app** on the domain `erp.orangepack.shop` (hPanel adds the subdomain's A record itself), from the GitHub repo with build command `npm run build` and start command `npm start`. (`npm run build` uses webpack — `next build --webpack` — because Turbopack, Next 16's default bundler, crashes on Hostinger: its sandbox kills the PostCSS worker process Turbopack spawns for `globals.css`. Webpack runs PostCSS in-process.) Turn on SSL for the subdomain and GitHub auto-deploy. Set these environment variables, then rebuild — `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a rebuild:
 
 | Variable | Value |
 | --- | --- |
