@@ -36,6 +36,13 @@
       "when": 1790911022488,
       "tag": "0004_quotation_payment_terms",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791784908163,
+      "tag": "0005_better_auth",
+      "breakpoints": true
     }
   ]
 }

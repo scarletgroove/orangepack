@@ -10,11 +10,19 @@ Internal web app for OrangePack staff. The first module issues **quotations (ใ
 - **Customers** — saved when a quotation is issued, reusable on the next one.
 - **Products & prices** — the full tier price table for all catalog items.
 
-Stack: Next.js 16 (App Router) · Drizzle ORM · Neon Postgres and Clerk via the Vercel Marketplace · Zod · UI designed with the [Hallmark](https://github.com/nutlope/hallmark) skill.
+Stack: Next.js 16 (App Router) · Drizzle ORM · Neon Postgres via the Vercel Marketplace · [Better Auth](https://better-auth.com) (Google sign-in) · Zod · UI designed with the [Hallmark](https://github.com/nutlope/hallmark) skill.
 
 ## Staff access
 
-Staff sign in at `/sign-in` with Clerk (email + password or Google). Only emails listed in the `ALLOWED_EMAILS` environment variable can use the app; anyone else who signs in sees a "no access" page and no data. The check runs on every data read and every server action (`src/lib/auth.ts`), not only in the page redirect.
+Staff sign in at `/sign-in` with their Google account (Better Auth, `src/auth.ts`). Users and sessions live in the app's own Postgres tables (`user`, `session`, `account`, `verification`, defined in `src/db/auth-schema.ts`). Only emails listed in the `ALLOWED_EMAILS` environment variable can use the app: an unlisted Google account is refused before a user row is created, and the list is checked again on every data read and every server action (`src/lib/auth.ts`), so removing an email revokes access on the next request.
+
+Auth needs these environment variables:
+
+| Variable | Value |
+| --- | --- |
+| `BETTER_AUTH_SECRET` | random 32+ characters, e.g. `openssl rand -base64 32`; changing it signs everyone out |
+| `BETTER_AUTH_URL` | the app's public URL, e.g. `https://erp.example.com` (`http://localhost:3000` locally) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | an OAuth client (type "Web application") from Google Cloud Console → APIs & Services → Credentials, with redirect URI `<BETTER_AUTH_URL>/api/auth/callback/google` |
 
 To add or remove a staff member, replace the list (comma-separated) and redeploy:
 
@@ -178,9 +186,11 @@ src/app/(app)/page.tsx       dashboard of due and overdue jobs
 src/app/(app)/orders/        sales order list, [id] (document + production/payment forms), server actions
 src/app/(app)/customers/    customer list
 src/app/(app)/products/     catalog and tier price tables
-src/app/sign-in/            Clerk sign-in page
+src/app/sign-in/            Google sign-in page
+src/app/api/auth/           Better Auth endpoints (OAuth callback, session, sign-out)
+src/auth.ts                 Better Auth config: Google provider, allowlist gate on sign-up
 src/app/no-access/          shown to signed-in users who are not on the allowlist
-src/proxy.ts                redirects signed-out visitors to /sign-in
+src/proxy.ts                redirects visitors without a session cookie to /sign-in
 src/components/             quotation editor, printable document, menu
 src/db/                     Drizzle schema and client
 src/lib/                    staff access check, pricing tiers, money/VAT math, Thai baht text, dates, order and payment input rules, job urgency
@@ -191,5 +201,5 @@ tokens.css            design tokens (brand colours, type, spacing)
 
 ## Before going live
 
-- **Clerk development instance.** The app currently uses Clerk development keys, which show a "Development mode" badge and have a user cap. Moving to a Clerk production instance requires a custom domain.
+- **Google OAuth consent screen.** While the Google Cloud app is in "Testing" mode only listed test users can sign in; publish it (internal apps with basic scopes need no review) before adding staff.
 - **Company details** — the business is not registered yet, so quotations show only the OrangePack logo (no address, contact details or tax ID) and are meant as preliminary quotes. After registering, add the legal name, address and tax ID back to the header in `src/components/quotation-document.tsx`.

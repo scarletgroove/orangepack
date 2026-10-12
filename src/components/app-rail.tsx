@@ -1,10 +1,10 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
 import { BookOpen, ClipboardList, FileText, LayoutDashboard, Package, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SignOutButton } from "@/components/auth-buttons";
 
 const links = [
   { href: "/", label: "ภาพรวม", icon: LayoutDashboard },
@@ -15,7 +15,7 @@ const links = [
   { href: "/profile", label: "โปรไฟล์", longLabel: "บริษัท", icon: BookOpen },
 ];
 
-export function AppRail() {
+export function AppRail({ user }: { user: { name: string | null; email: string | null } }) {
   const pathname = usePathname();
 
   return (
@@ -44,7 +44,10 @@ export function AppRail() {
         })}
       </nav>
       <div className="rail__user">
-        <UserButton showName />
+        <span className="rail__user-name" title={user.email ?? undefined}>
+          {user.name ?? user.email}
+        </span>
+        <SignOutButton className="btn btn--quiet btn--icon" compact />
       </div>
       <p className="rail__foot">ราคาสินค้านำเข้าจาก theorangepack.com</p>
     </header>

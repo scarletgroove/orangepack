@@ -13,8 +13,10 @@ jobs:
       # Placeholders only. Nothing here connects anywhere: the tests are pure functions and every page
       # is rendered on demand, so the build never reads the database.
       DATABASE_URL: postgresql://ci:ci@localhost/ci?sslmode=require
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
-      CLERK_SECRET_KEY: sk_test_ci
+      BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-0000
+      BETTER_AUTH_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: ci
+      GOOGLE_CLIENT_SECRET: ci
       ALLOWED_EMAILS: ""
     steps:
       - uses: actions/checkout@v5

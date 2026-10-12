@@ -126,6 +126,8 @@ h3 {
 .rail__user {
   display: flex;
   align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
   flex: none;
   min-height: var(--control-h);
   margin-left: auto;
@@ -185,7 +187,7 @@ h3 {
   }
 }
 @media (max-width: 39.99rem) {
-  .rail__user .cl-userButtonOuterIdentifier {
+  .rail__user-name {
     display: none;
   }
 }
@@ -232,11 +234,6 @@ h3 {
 .auth__panel {
   min-width: 0;
 }
-.auth__panel .cl-rootBox,
-.auth__panel .cl-cardBox {
-  width: 100%;
-  max-width: 100%;
-}
 .auth__panel--note {
   display: grid;
   justify-items: start;
@@ -247,8 +244,35 @@ h3 {
   background: var(--color-paper-3);
   color: var(--color-ink-2);
 }
-.auth__panel--note svg {
+.auth__panel--note > svg {
   color: var(--color-accent-text);
+}
+.auth__panel-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.auth__error {
+  color: var(--color-error);
+}
+.auth__google {
+  width: 100%;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+.auth__google svg {
+  padding: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-sizing: content-box;
+}
+.rail__user-name {
+  overflow: hidden;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---------- page ---------- */

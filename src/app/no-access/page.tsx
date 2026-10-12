@@ -1,8 +1,8 @@
-import { SignOutButton } from "@clerk/nextjs";
 import { ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import { SignOutButton } from "@/components/auth-buttons";
 import { getStaffStatus } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "ไม่มีสิทธิ์เข้าใช้งาน" };
@@ -25,11 +25,7 @@ export default async function NoAccessPage() {
       <div className="auth__panel auth__panel--note">
         <ShieldAlert size={28} aria-hidden />
         <p>ถ้าคุณมีอีเมลอื่นที่ได้รับสิทธิ์ ให้ออกจากระบบแล้วเข้าสู่ระบบใหม่ด้วยอีเมลนั้น</p>
-        <SignOutButton redirectUrl="/sign-in">
-          <button type="button" className="btn btn--primary">
-            ออกจากระบบ
-          </button>
-        </SignOutButton>
+        <SignOutButton />
       </div>
     </main>
   );
