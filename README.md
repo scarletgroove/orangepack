@@ -10,19 +10,13 @@ Internal web app for OrangePack staff. The first module issues **quotations (ใ
 - **Customers** — saved when a quotation is issued, reusable on the next one.
 - **Products & prices** — the full tier price table for all catalog items.
 
-Stack: Next.js 16 (App Router) · Drizzle ORM · Neon Postgres and Clerk via the Vercel Marketplace · Zod · UI designed with the [Hallmark](https://github.com/nutlope/hallmark) skill.
+Stack: Next.js 16 (App Router) · Drizzle ORM · Neon Postgres and Clerk via the Vercel Marketplace · hosted on Hostinger at https://erp.orangepack.shop · Zod · UI designed with the [Hallmark](https://github.com/nutlope/hallmark) skill.
 
 ## Staff access
 
 Staff sign in at `/sign-in` with Clerk (email + password or Google). Only emails listed in the `ALLOWED_EMAILS` environment variable can use the app; anyone else who signs in sees a "no access" page and no data. The check runs on every data read and every server action (`src/lib/auth.ts`), not only in the page redirect.
 
-To add or remove a staff member, replace the list (comma-separated) and redeploy:
-
-```bash
-npx vercel env rm ALLOWED_EMAILS production --yes
-printf 'owner@example.com,staff@example.com' | npx vercel env add ALLOWED_EMAILS production
-npx vercel deploy --prod
-```
+To add or remove a staff member, edit `ALLOWED_EMAILS` (comma-separated) in hPanel → Websites → erp.orangepack.shop → Environment variables, then Redeploy. New staff then sign up once at https://erp.orangepack.shop/sign-in.
 
 If `ALLOWED_EMAILS` is empty, nobody can get in.
 
@@ -30,7 +24,7 @@ If `ALLOWED_EMAILS` is empty, nobody can get in.
 
 | Branch | Endpoint | Used by |
 | --- | --- | --- |
-| `main` | `ep-silent-pond-b3qphny9` | the deployed app (env vars live in Vercel) |
+| `main` | `ep-silent-pond-b3qphny9` | the deployed app on Hostinger (connection string in hPanel env vars; Vercel still holds a copy) |
 | `dev` | `ep-withered-breeze-b3biyago` | local development (`.env.local`) |
 
 Both are branches of the Neon project `orangepack-erp-db` (`small-voice-34844459`) in the Vercel-owned org `org-jolly-queen-65685148`. `dev` is a copy-on-write clone of `main`: it starts with production's schema and data, and writes to it never reach production.
@@ -55,7 +49,7 @@ Neon commands need a signed-in CLI (`npx neon@latest auth`, once per machine).
 
 ## Backups and CI
 
-`.github/workflows/ci.yml` runs lint, type-check, `npm test` and the production build on every push and pull request. Pushing to `main` deploys to production, so check that it is green.
+`.github/workflows/ci.yml` runs lint, type-check, `npm test` and the production build on every push and pull request. Pushing to `main` deploys to production on Hostinger, which does not wait for CI — run `npm run lint`, `npx tsc --noEmit`, `npm test` and `npm run build` locally (or open a PR and wait for green) before pushing.
 
 `.github/workflows/backup.yml` snapshots the production branch daily at 03:00 Bangkok and keeps each snapshot 30 days. This exists because the project's Neon plan caps point-in-time restore at **6 hours** (`history_retention_seconds: 21600`, and the API refuses a higher value), which is not long enough to notice a mistake made yesterday.
 
@@ -191,7 +185,7 @@ tokens.css            design tokens (brand colours, type, spacing)
 
 ## Production on Hostinger (`erp.orangepack.shop`)
 
-The planned production home is Hostinger Cloud hosting at `erp.orangepack.shop`, with a Clerk production instance on that subdomain. `orangepack.shop` itself is left free. Nothing in the code is Vercel-specific; the app runs with `npm run build` and `npm start` on Node 20.9 or newer (use 22).
+Production runs on Hostinger Cloud hosting at `erp.orangepack.shop`, with a Clerk production instance on that subdomain. `orangepack.shop` itself is left free. Nothing in the code is Vercel-specific; the app runs with `npm run build` and `npm start` on Node 20.9 or newer (use 22).
 
 `orangepack.shop` uses Hostinger's nameservers (`cosmos.dns-parking.com`, `nova.dns-parking.com`), so every DNS record is added in hPanel → Domains → orangepack.shop → DNS / Nameservers → DNS records. hPanel appends `.orangepack.shop` to the Name field, so enter only the part before it.
 
@@ -199,17 +193,21 @@ The planned production home is Hostinger Cloud hosting at `erp.orangepack.shop`,
 
 **2. Set the Clerk production domain — in Vercel, not Clerk.** Vercel created the production instance with a placeholder domain (`firm.yeti-249.lcl.dev`, whose publishable key decodes to `.clerk.accounts.dev`). Because the integration owns the domain, Clerk's Danger zone has no Change domain option and the Backend API `change_domain` call returns 403 `domain_managed_by_integration`. Change it in Vercel → Integrations → Clerk → `orangepack-erp-auth` → Update Configuration → **Production domain** = `erp.orangepack.shop`. Clerk then serves its Frontend API at `clerk.erp.orangepack.shop` and the Account Portal at `accounts.erp.orangepack.shop`, and issues a new publishable key (`pk_live_Y2xlcmsuZXJwLm9yYW5nZXBhY2suc2hvcCQ`, i.e. base64 of `clerk.erp.orangepack.shop$`). The secret key does not change.
 
-**3. Add Clerk's DNS records** in hPanel, all type CNAME. These are the instance's actual targets (from Clerk's Backend API `GET /v1/domains`); if the domain is ever changed again, re-read them from Clerk's Domains page.
+**3. Add Clerk's DNS records**, all type CNAME. These are the instance's actual targets (from Clerk's Backend API `GET /v1/domains`); if the domain is ever changed again, re-read them from Clerk's Domains page.
 
-| Name in hPanel | Full host | Target |
+**They belong in the `erp.orangepack.shop` zone, not the `orangepack.shop` zone.** Attaching the subdomain to the Hostinger website (step 5) makes hPanel create a separate DNS zone for `erp.orangepack.shop`, delegated with its own NS records. From then on every `*.erp.orangepack.shop` lookup is answered by that zone, and records named `clerk.erp` etc. in the `orangepack.shop` zone are silently ignored — Clerk's script stops loading and the sign-in box renders blank. In the `erp.orangepack.shop` zone, hPanel appends `.erp.orangepack.shop`, so the names are short:
+
+| Name (in the `erp.orangepack.shop` zone) | Full host | Target |
 | --- | --- | --- |
-| `clerk.erp` | clerk.erp.orangepack.shop | `frontend-api.clerk.services` |
-| `accounts.erp` | accounts.erp.orangepack.shop | `accounts.clerk.services` |
-| `clkmail.erp` | clkmail.erp.orangepack.shop | `mail.d0ntb1c2t3p6.clerk.services` |
-| `clk._domainkey.erp` | clk._domainkey.erp.orangepack.shop | `dkim1.d0ntb1c2t3p6.clerk.services` |
-| `clk2._domainkey.erp` | clk2._domainkey.erp.orangepack.shop | `dkim2.d0ntb1c2t3p6.clerk.services` |
+| `clerk` | clerk.erp.orangepack.shop | `frontend-api.clerk.services` |
+| `accounts` | accounts.erp.orangepack.shop | `accounts.clerk.services` |
+| `clkmail` | clkmail.erp.orangepack.shop | `mail.d0ntb1c2t3p6.clerk.services` |
+| `clk._domainkey` | clk._domainkey.erp.orangepack.shop | `dkim1.d0ntb1c2t3p6.clerk.services` |
+| `clk2._domainkey` | clk2._domainkey.erp.orangepack.shop | `dkim2.d0ntb1c2t3p6.clerk.services` |
 
-Then Verify in Clerk, and Deploy certificates once every record is green. To check from a terminal: `dig +short clerk.erp.orangepack.shop CNAME`. `https://clerk.erp.orangepack.shop/v1/environment` should then answer with `instance_environment_type: production`; `accounts.erp.orangepack.shop` sits behind a Cloudflare bot check, so scripted requests get a 403 "Just a moment..." page while browsers load it normally.
+The old `clerk.erp`-style copies are still in the `orangepack.shop` zone; they are unused but harmless, and would take over again if the `erp` zone were ever removed. Check against a public resolver, not your own machine (which may hold a cached answer for hours): `dig +short clerk.erp.orangepack.shop @8.8.8.8` should end in Cloudflare IPs, and `dig +short erp.orangepack.shop NS @8.8.8.8` shows whether the separate zone exists.
+
+Then Verify in Clerk, and Deploy certificates once every record is green. `https://clerk.erp.orangepack.shop/v1/environment` should then answer with `instance_environment_type: production`; `accounts.erp.orangepack.shop` sits behind a Cloudflare bot check, so scripted requests get a 403 "Just a moment..." page while browsers load it normally.
 
 **4. Google sign-in.** Development uses Clerk's shared Google credentials; production needs your own. In Clerk → Production → Configure → SSO connections → Google, turn on custom credentials and copy its redirect URI. In Google Cloud Console → APIs & Services → Credentials, create an OAuth client (Web application) with:
 
@@ -218,7 +216,7 @@ Then Verify in Clerk, and Deploy certificates once every record is green. To che
 
 Paste the client ID and secret into Clerk, and publish the consent screen (while it is in Testing, only listed test users can sign in).
 
-**5. Create the Hostinger Node.js app** on the domain `erp.orangepack.shop` (hPanel adds the subdomain's A record itself), from the GitHub repo with build command `npm run build` and start command `npm start`. (`npm run build` uses webpack — `next build --webpack` — because Turbopack, Next 16's default bundler, crashes on Hostinger: its sandbox kills the PostCSS worker process Turbopack spawns for `globals.css`. Webpack runs PostCSS in-process.) Turn on SSL for the subdomain and GitHub auto-deploy. Set these environment variables, then rebuild — `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a rebuild:
+**5. Create the Hostinger Node.js app** on the domain `erp.orangepack.shop` (hPanel creates the subdomain's DNS zone and address records itself; if the app lands on `orangepack.shop` instead, move it with the website's Manage domain), from the GitHub repo with build command `npm run build` and start command `npm start`. (`npm run build` uses webpack — `next build --webpack` — because Turbopack, Next 16's default bundler, crashes on Hostinger: its sandbox kills the PostCSS worker process Turbopack spawns for `globals.css`. Webpack runs PostCSS in-process.) Turn on SSL for the subdomain and GitHub auto-deploy. Set these environment variables, then rebuild — `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a rebuild:
 
 | Variable | Value |
 | --- | --- |
@@ -229,9 +227,8 @@ Paste the client ID and secret into Clerk, and publish the consent screen (while
 
 Live keys only work on `erp.orangepack.shop`; `.env.local` keeps the development keys. On Hostinger, changing `ALLOWED_EMAILS` is done in the app's environment settings followed by a redeploy, in place of the `vercel env` commands above.
 
-**6. Switch over.** Staff accounts in the Clerk development instance do not carry over: each person signs up once at `https://erp.orangepack.shop/sign-in` with the same email. Check in a private window that a listed email reaches the quotations page with no "Development mode" badge and an unlisted email lands on the no-access page. Then turn off the Vercel deployment so only one copy of the app writes to the database.
+**6. Switch over.** Staff accounts in the Clerk development instance do not carry over: each person signs up once at `https://erp.orangepack.shop/sign-in` with the same email. Check in a private window that a listed email reaches the quotations page with no "Development mode" badge and an unlisted email lands on the no-access page. Then turn off Vercel so only one copy of the app writes to the database. This is done: the Vercel project `orangepack-erp` has its GitHub repo disconnected (no more deployments) and is paused (`*.vercel.app` returns 503). The project stays because it holds the Clerk and Neon integrations — do not delete it or uninstall them. To bring it back: Settings → Git → connect `scarletgroove/orangepack`, and resume the project.
 
 ## Before going live
 
-- **Clerk development instance.** The app currently uses Clerk development keys, which show a "Development mode" badge and have a user cap. The production setup is described in [Production on Hostinger](#production-on-hostinger-erporangepackshop).
 - **Company details** — the business is not registered yet, so quotations show only the OrangePack logo (no address, contact details or tax ID) and are meant as preliminary quotes. After registering, add the legal name, address and tax ID back to the header in `src/components/quotation-document.tsx`.
