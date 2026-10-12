@@ -195,21 +195,21 @@ The planned production home is Hostinger Cloud hosting at `erp.orangepack.shop`,
 
 `orangepack.shop` uses Hostinger's nameservers (`cosmos.dns-parking.com`, `nova.dns-parking.com`), so every DNS record is added in hPanel → Domains → orangepack.shop → DNS / Nameservers → DNS records. hPanel appends `.orangepack.shop` to the Name field, so enter only the part before it.
 
-**1. Check who owns the Clerk app.** Clerk was added through the Vercel Marketplace, so it may be tied to the Vercel integration. Confirm the Clerk app survives (or move it to a standalone Clerk account) before uninstalling the integration or deleting the Vercel project.
+**1. The Clerk app is managed by Vercel.** Clerk (`orangepack-erp-auth`, app `app_3JPtMZNck3qt9hHKNn2DudM8xku`) and Neon were both installed through the Vercel Marketplace on the team `scarletgrooves-projects`, and Vercel bills and owns them. Open Clerk from Vercel → Integrations → Clerk → Open in Clerk. Keep both integrations installed after the move — removing one would likely delete the Clerk app or the database with it.
 
-**2. Create the Clerk production instance.** Clerk Dashboard → switch to Production → Create production instance → Clone development instance, domain `erp.orangepack.shop`.
+**2. Set the Clerk production domain — in Vercel, not Clerk.** Vercel created the production instance with a placeholder domain (`firm.yeti-249.lcl.dev`, whose publishable key decodes to `.clerk.accounts.dev`). Because the integration owns the domain, Clerk's Danger zone has no Change domain option and the Backend API `change_domain` call returns 403 `domain_managed_by_integration`. Change it in Vercel → Integrations → Clerk → `orangepack-erp-auth` → Update Configuration → **Production domain** = `erp.orangepack.shop`. Clerk then serves its Frontend API at `clerk.erp.orangepack.shop` and the Account Portal at `accounts.erp.orangepack.shop`, and issues a new publishable key (`pk_live_Y2xlcmsuZXJwLm9yYW5nZXBhY2suc2hvcCQ`, i.e. base64 of `clerk.erp.orangepack.shop$`). The secret key does not change.
 
-**3. Add Clerk's DNS records** in hPanel, all type CNAME. The table shows Clerk's usual pattern; copy the names and targets from Clerk's Domains page, which is authoritative (the three email targets are unique to the instance).
+**3. Add Clerk's DNS records** in hPanel, all type CNAME. These are the instance's actual targets (from Clerk's Backend API `GET /v1/domains`); if the domain is ever changed again, re-read them from Clerk's Domains page.
 
 | Name in hPanel | Full host | Target |
 | --- | --- | --- |
 | `clerk.erp` | clerk.erp.orangepack.shop | `frontend-api.clerk.services` |
 | `accounts.erp` | accounts.erp.orangepack.shop | `accounts.clerk.services` |
-| `clkmail.erp` | clkmail.erp.orangepack.shop | from Clerk |
-| `clk._domainkey.erp` | clk._domainkey.erp.orangepack.shop | from Clerk |
-| `clk2._domainkey.erp` | clk2._domainkey.erp.orangepack.shop | from Clerk |
+| `clkmail.erp` | clkmail.erp.orangepack.shop | `mail.d0ntb1c2t3p6.clerk.services` |
+| `clk._domainkey.erp` | clk._domainkey.erp.orangepack.shop | `dkim1.d0ntb1c2t3p6.clerk.services` |
+| `clk2._domainkey.erp` | clk2._domainkey.erp.orangepack.shop | `dkim2.d0ntb1c2t3p6.clerk.services` |
 
-Then Verify in Clerk, and Deploy certificates once every record is green. To check from a terminal: `dig +short clerk.erp.orangepack.shop CNAME`.
+Then Verify in Clerk, and Deploy certificates once every record is green. To check from a terminal: `dig +short clerk.erp.orangepack.shop CNAME`. `https://clerk.erp.orangepack.shop/v1/environment` should then answer with `instance_environment_type: production`; `accounts.erp.orangepack.shop` sits behind a Cloudflare bot check, so scripted requests get a 403 "Just a moment..." page while browsers load it normally.
 
 **4. Google sign-in.** Development uses Clerk's shared Google credentials; production needs your own. In Clerk → Production → Configure → SSO connections → Google, turn on custom credentials and copy its redirect URI. In Google Cloud Console → APIs & Services → Credentials, create an OAuth client (Web application) with:
 
