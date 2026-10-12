@@ -189,7 +189,49 @@ scripts/seed.ts       catalog import
 tokens.css            design tokens (brand colours, type, spacing)
 ```
 
+## Production on Hostinger (`erp.orangepack.shop`)
+
+The planned production home is Hostinger Cloud hosting at `erp.orangepack.shop`, with a Clerk production instance on that subdomain. `orangepack.shop` itself is left free. Nothing in the code is Vercel-specific; the app runs with `npm run build` and `npm start` on Node 20.9 or newer (use 22).
+
+`orangepack.shop` uses Hostinger's nameservers (`cosmos.dns-parking.com`, `nova.dns-parking.com`), so every DNS record is added in hPanel → Domains → orangepack.shop → DNS / Nameservers → DNS records. hPanel appends `.orangepack.shop` to the Name field, so enter only the part before it.
+
+**1. Check who owns the Clerk app.** Clerk was added through the Vercel Marketplace, so it may be tied to the Vercel integration. Confirm the Clerk app survives (or move it to a standalone Clerk account) before uninstalling the integration or deleting the Vercel project.
+
+**2. Create the Clerk production instance.** Clerk Dashboard → switch to Production → Create production instance → Clone development instance, domain `erp.orangepack.shop`.
+
+**3. Add Clerk's DNS records** in hPanel, all type CNAME. The table shows Clerk's usual pattern; copy the names and targets from Clerk's Domains page, which is authoritative (the three email targets are unique to the instance).
+
+| Name in hPanel | Full host | Target |
+| --- | --- | --- |
+| `clerk.erp` | clerk.erp.orangepack.shop | `frontend-api.clerk.services` |
+| `accounts.erp` | accounts.erp.orangepack.shop | `accounts.clerk.services` |
+| `clkmail.erp` | clkmail.erp.orangepack.shop | from Clerk |
+| `clk._domainkey.erp` | clk._domainkey.erp.orangepack.shop | from Clerk |
+| `clk2._domainkey.erp` | clk2._domainkey.erp.orangepack.shop | from Clerk |
+
+Then Verify in Clerk, and Deploy certificates once every record is green. To check from a terminal: `dig +short clerk.erp.orangepack.shop CNAME`.
+
+**4. Google sign-in.** Development uses Clerk's shared Google credentials; production needs your own. In Clerk → Production → Configure → SSO connections → Google, turn on custom credentials and copy its redirect URI. In Google Cloud Console → APIs & Services → Credentials, create an OAuth client (Web application) with:
+
+- Authorized JavaScript origin: `https://erp.orangepack.shop`
+- Authorized redirect URI: the one Clerk shows (expected `https://clerk.erp.orangepack.shop/v1/oauth_callback`)
+
+Paste the client ID and secret into Clerk, and publish the consent screen (while it is in Testing, only listed test users can sign in).
+
+**5. Create the Hostinger Node.js app** on the domain `erp.orangepack.shop` (hPanel adds the subdomain's A record itself), from the GitHub repo with build command `npm run build:webpack` and start command `npm start`. (Turbopack's default `npm run build` crashes on Hostinger: its sandbox kills the PostCSS worker process Turbopack spawns for `globals.css`. Webpack runs PostCSS in-process.) Turn on SSL for the subdomain and GitHub auto-deploy. Set these environment variables, then rebuild — `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a rebuild:
+
+| Variable | Value |
+| --- | --- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_live_…` from Clerk Production → API keys |
+| `CLERK_SECRET_KEY` | `sk_live_…` from the same page |
+| `DATABASE_URL` | the Neon `main` branch connection string |
+| `ALLOWED_EMAILS` | comma-separated staff emails |
+
+Live keys only work on `erp.orangepack.shop`; `.env.local` keeps the development keys. On Hostinger, changing `ALLOWED_EMAILS` is done in the app's environment settings followed by a redeploy, in place of the `vercel env` commands above.
+
+**6. Switch over.** Staff accounts in the Clerk development instance do not carry over: each person signs up once at `https://erp.orangepack.shop/sign-in` with the same email. Check in a private window that a listed email reaches the quotations page with no "Development mode" badge and an unlisted email lands on the no-access page. Then turn off the Vercel deployment so only one copy of the app writes to the database.
+
 ## Before going live
 
-- **Clerk development instance.** The app currently uses Clerk development keys, which show a "Development mode" badge and have a user cap. Moving to a Clerk production instance requires a custom domain.
+- **Clerk development instance.** The app currently uses Clerk development keys, which show a "Development mode" badge and have a user cap. The production setup is described in [Production on Hostinger](#production-on-hostinger-erporangepackshop).
 - **Company details** — the business is not registered yet, so quotations show only the OrangePack logo (no address, contact details or tax ID) and are meant as preliminary quotes. After registering, add the legal name, address and tax ID back to the header in `src/components/quotation-document.tsx`.
